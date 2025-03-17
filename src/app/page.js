@@ -211,7 +211,7 @@ export default function HomePage() {
                     style={{
                       cursor: 'pointer',
                       padding: '15px',
-                      backgroundColor: 'white',
+                      // backgroundColor: 'white',
                       marginBottom: '15px',
                       borderRadius: '8px',
                       boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
@@ -219,7 +219,7 @@ export default function HomePage() {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '18px', fontWeight: '500' }}>{account.name}</span>
+                      <span style={{ fontSize: '18px', fontWeight: '900',  color: 'black' }}>{account.name}</span>
                       <span
                         style={{
                           fontSize: '14px',
@@ -255,7 +255,7 @@ export default function HomePage() {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '16px', fontWeight: '500' }}>{campaign.name}</span>
+                      <span style={{ fontSize: '16px', fontWeight: '700', color: 'black' }}>{campaign.name}</span>
                       <span
                         style={{
                           fontSize: '14px',
