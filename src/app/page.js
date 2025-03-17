@@ -268,27 +268,6 @@ export default function HomePage() {
                     </div>
                   </li>
                 ))}
-
-                {/* {campaigns.map((campaign) => (
-                  <li
-                    key={campaign.id}
-                    onClick={() => handleCampaignClick(campaign)}
-                    style={{
-                      padding: '12px',
-                      marginBottom: '12px',
-                      backgroundColor: 'white',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '16px', fontWeight: '500' }}>{campaign.name}</span>
-                      <span style={{ fontSize: '14px', fontWeight: '500' }}>
-                        {campaign.status} | {campaign.objective}
-                      </span>
-                    </div>
-                  </li>
-                ))} */}
               </ul>
             </div>
           )}
