@@ -243,14 +243,16 @@ export default function HomePage() {
                 {campaigns.map((campaign) => (
                   <li
                     key={campaign.id}
-                    onClick={() => campaign.status === 'ACTIVE' && handleCampaignClick(campaign)} // Only click for ACTIVE campaigns
+                    // onClick={() => campaign.status === 'ACTIVE' && handleCampaignClick(campaign)} // Only click for ACTIVE campaigns
+                    onClick={() => handleCampaignClick(campaign)} // Only click for ACTIVE campaigns
                     style={{
                       padding: '12px',
                       marginBottom: '12px',
                       backgroundColor: campaign.status === 'ACTIVE' ? 'white' : 'white', // Active campaigns have white background, paused ones are greyed out
                       borderRadius: '8px',
                       boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                      cursor: campaign.status === 'ACTIVE' ? 'pointer' : 'not-allowed', // Set pointer for active, not-allowed for paused
+                      // cursor: campaign.status === 'ACTIVE' ? 'pointer' : 'not-allowed', // Set pointer for active, not-allowed for paused
+                      cursor: campaign.status === 'ACTIVE' ? 'pointer' : 'pointer', // Set pointer for active, not-allowed for paused
                       opacity: campaign.status === 'PAUSED' ? 1 : 1, // Reduce opacity for paused campaigns
                     }}
                   >

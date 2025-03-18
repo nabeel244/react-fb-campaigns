@@ -3,6 +3,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import axios from "axios";
 
 export async function GET(req) {
+  console.log('we are here')
   const session = await getServerSession(authOptions);
   if (!session) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
@@ -24,13 +25,8 @@ export async function GET(req) {
 
     // Fetch campaign insights (clicks and impressions)
     const insightsResponse = await axios.get(
-      `https://graph.facebook.com/v19.0/${campaignId}/insights?fields=clicks,impressions&access_token=${accessToken}`
+      `https://graph.facebook.com/v19.0/${campaignId}/insights?fields=clicks,impressions,spend,cpc,cpm&time_range={"since":"2022-10-01","until":"2025-04-18"}&access_token=${accessToken}`
     );
-    // const campaignInsights = await axios.get(
-    //   `https://graph.facebook.com/v19.0/${campaignId}/adsets?fields=id,name,status,objective,spend,clicks,impressions,reach,conversions,cost_per_click,cost_per_impression,cost_per_conversion,engagement&access_token=${accessToken}`
-    // );
-    
-    
 
     console.log("Campaign Insights Response:", insightsResponse.data); // Log the insights response
 
