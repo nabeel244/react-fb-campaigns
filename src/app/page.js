@@ -66,6 +66,7 @@ export default function HomePage() {
         if (data.error) {
           setError(data.error);
         } else {
+          console.log(data, 'data')
           setSelectedCampaignMetrics(data);  // Set the campaign metrics
           setMessages([{ role: 'assistant', content: `You selected campaign "${campaignName}". How can I help you improve this campaign?` }]);  // Start the conversation
         }
@@ -78,45 +79,171 @@ export default function HomePage() {
       });
   };
 
-  const handleSendMessage = () => {
-    if (!userInput.trim()) return;
+  const [isCampaignMessageSent, setIsCampaignMessageSent] = useState(false); // Flag to track if campaign message is sent
 
-    setMessages((prevMessages) => [...prevMessages, { role: "user", content: userInput }]);
-    setIsLoading(true);
+const handleSendMessage = () => {
+  if (!userInput.trim()) return;
 
-    // Send the chat history (messages) to OpenAI API for response
-    fetch("/api/conversation", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        conversationHistory: [
-          ...messages,
-          { role: "user", content: userInput },
-        ],  // Add the new user message to the conversation
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) {
-          setError(data.error);
-        } else {
-          // Append OpenAI's response to the chat
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { role: "assistant", content: data.response },
-          ]);
-        }
-      })
-      .catch((err) => {
-        setError("Error fetching OpenAI response");
-      })
-      .finally(() => {
-        setIsLoading(false);
-        setUserInput("");
-      });
+  // Add user input to the message history
+  const newMessage = { role: "user", content: userInput };
+
+  // Include campaign metrics in the conversation for context (only if it's not already sent)
+  const campaignMetricsMessage = {
+    role: "assistant",
+    content: `Campaign data: 
+      Campaign Name: ${selectedCampaignMetrics?.campaign_name}, 
+      Clicks: ${selectedCampaignMetrics?.clicks}, 
+      Impressions: ${selectedCampaignMetrics?.impressions}, 
+      Spend: ${selectedCampaignMetrics?.spend}, 
+      CPC: ${selectedCampaignMetrics?.cpc}, 
+      CPM: ${selectedCampaignMetrics?.cpm}, 
+      Conversion Rate Ranking: ${selectedCampaignMetrics?.conversion_rate_ranking}, 
+      Cost per Action Type: ${JSON.stringify(selectedCampaignMetrics?.cost_per_action_type)}, 
+      Cost per Unique Click: ${selectedCampaignMetrics?.cost_per_unique_click}, 
+      Cost per Unique Outbound Click: ${JSON.stringify(selectedCampaignMetrics?.cost_per_unique_outbound_click)}, 
+      CTR: ${selectedCampaignMetrics?.ctr}, 
+      CPP: ${selectedCampaignMetrics?.cpp}, 
+      Objective: ${selectedCampaignMetrics?.objective}, 
+      Social Spend: ${selectedCampaignMetrics?.social_spend}, 
+      Quality Ranking: ${selectedCampaignMetrics?.quality_ranking}, 
+      Reach: ${selectedCampaignMetrics?.reach}, 
+      Frequency: ${selectedCampaignMetrics?.frequency}, 
+      Start Date: ${selectedCampaignMetrics?.date_start}, 
+      End Date: ${selectedCampaignMetrics?.date_stop}`
   };
+
+  // If campaign metrics message has not been sent, add it to the message history
+  if (!isCampaignMessageSent) {
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      campaignMetricsMessage,  // Add campaign metrics message only once
+      newMessage,
+    ]);
+    setIsCampaignMessageSent(true); // Set flag to true after adding the campaign message
+  } else {
+    // If campaign metrics message is already sent, only add the user message
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      newMessage,
+    ]);
+  }
+
+  setIsLoading(true);
+
+  // Send the chat history (including campaign data and user input) to the OpenAI API for response
+  fetch("/api/conversation", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      conversationHistory: [
+        ...messages,
+        ...(isCampaignMessageSent ? [] : [campaignMetricsMessage]), // Add campaign data only if it's not already sent
+        newMessage,
+      ],
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.error) {
+        setError(data.error);
+      } else {
+        // Append OpenAI's response to the chat
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { role: "assistant", content: data.response },
+        ]);
+      }
+    })
+    .catch((err) => {
+      setError("Error fetching OpenAI response");
+    })
+    .finally(() => {
+      setIsLoading(false);
+      setUserInput("");  // Clear the input field after sending the message
+    });
+};
+
+  // const handleSendMessage = () => {
+  //   if (!userInput.trim()) return;
+  //   // Add user input to the message history
+  //   const newMessage = { role: "user", content: userInput };
+  
+  //   // Include campaign metrics in the conversation for context
+  //   const campaignMetricsMessage = {
+  //     role: "assistant",
+  //     content: `Campaign data: 
+  //       Campaign Name: ${selectedCampaignMetrics?.campaign_name}, 
+  //       Clicks: ${selectedCampaignMetrics?.clicks}, 
+  //       Impressions: ${selectedCampaignMetrics?.impressions}, 
+  //       Spend: ${selectedCampaignMetrics?.spend}, 
+  //       CPC: ${selectedCampaignMetrics?.cpc}, 
+  //       CPM: ${selectedCampaignMetrics?.cpm}, 
+  //       Conversion Rate Ranking: ${selectedCampaignMetrics?.conversion_rate_ranking}, 
+  //       Cost per Action Type: ${JSON.stringify(selectedCampaignMetrics?.cost_per_action_type)}, 
+  //       Cost per Unique Click: ${selectedCampaignMetrics?.cost_per_unique_click}, 
+  //       Cost per Unique Outbound Click: ${JSON.stringify(selectedCampaignMetrics?.cost_per_unique_outbound_click)}, 
+  //       CTR: ${selectedCampaignMetrics?.ctr}, 
+  //       CPP: ${selectedCampaignMetrics?.cpp}, 
+  //       Objective: ${selectedCampaignMetrics?.objective}, 
+  //       Social Spend: ${selectedCampaignMetrics?.social_spend}, 
+  //       Quality Ranking: ${selectedCampaignMetrics?.quality_ranking}, 
+  //       Reach: ${selectedCampaignMetrics?.reach}, 
+  //       Frequency: ${selectedCampaignMetrics?.frequency}, 
+  //       Start Date: ${selectedCampaignMetrics?.date_start}, 
+  //       End Date: ${selectedCampaignMetrics?.date_stop}`
+  //   };
+    
+  //   // const campaignMetricsMessage = {
+  //   //   role: "assistant",
+  //   //   content: `Campaign data: Clicks: ${selectedCampaignMetrics?.clicks}, Impressions: ${selectedCampaignMetrics?.impressions}, Spend: ${selectedCampaignMetrics?.spend}, CPC: ${selectedCampaignMetrics?.cpc}, CPM: ${selectedCampaignMetrics?.cpm}, Conversions: ${selectedCampaignMetrics?.conversions}, Cost per Conversion: ${selectedCampaignMetrics?.cost_per_conversion}.`, // Example of key metrics
+  //   // };
+  
+  //   // Update the message history with campaign data and user input
+  //   setMessages((prevMessages) => [
+  //     ...prevMessages,
+  //     campaignMetricsMessage,
+  //     newMessage,
+  //   ]);
+  
+  //   setIsLoading(true);
+  
+  //   // Send the chat history (including campaign data and user input) to the OpenAI API for response
+  //   fetch("/api/conversation", {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //     body: JSON.stringify({
+  //       conversationHistory: [
+  //         ...messages,
+  //         campaignMetricsMessage,  // Include campaign data as part of the history
+  //         { role: "user", content: userInput },  // Add the new user message
+  //       ],
+  //     }),
+  //   })
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       if (data.error) {
+  //         setError(data.error);
+  //       } else {
+  //         // Append OpenAI's response to the chat
+  //         setMessages((prevMessages) => [
+  //           ...prevMessages,
+  //           { role: "assistant", content: data.response },
+  //         ]);
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       setError("Error fetching OpenAI response");
+  //     })
+  //     .finally(() => {
+  //       setIsLoading(false);
+  //       setUserInput("");  // Clear the input field after sending the message
+  //     });
+  // };
+  
 
   return (
     <div style={{ padding: '30px', backgroundColor: '#f5f5f5' }}>

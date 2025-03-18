@@ -6,7 +6,7 @@ const openai = new OpenAI({
 
 export async function GET(req) {
   const urlParams = new URLSearchParams(req.url.split('?')[1]);
-
+console.log('we are here right now')
   // Extract query parameters
   const campaignName = urlParams.get("campaignName");
   const clicks = urlParams.get("clicks");
@@ -36,7 +36,7 @@ export async function GET(req) {
 
     // Send request to OpenAI API to generate a response based on the prompt
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",  // Use "gpt-4" if needed and available
+      model: "gpt-4",  // Use "gpt-4" if needed and available
       messages: [
         {
           role: "system",
