@@ -124,7 +124,7 @@ export default function HomePage() {
         <p>Loading...</p>
       ) : (
         <>
-          <h1 style={{ fontSize: '30px', fontWeight: '700', marginBottom: '20px' }}>Facebook Ad Accounts</h1>
+          <h1 style={{ fontSize: '30px', fontWeight: '700', marginBottom: '20px', color: '#5A9EC9' }}>Facebook Ad Accounts</h1>
           <button
             onClick={() => signOut()}
             style={{
@@ -143,10 +143,10 @@ export default function HomePage() {
           {selectedCampaignMetrics && (
             <div style={{ marginTop: '5px', padding: '20px', backgroundColor: '#fff', borderRadius: '10px' }}>
               <div style={{ marginBottom: '15px' }}>
-                <p><strong>Clicks:</strong> {selectedCampaignMetrics.clicks}</p>
-                <p><strong>Impressions:</strong> {selectedCampaignMetrics.impressions}</p>
+                <p style={{ color: '#7EC8E3' }}><strong>Clicks:</strong> {selectedCampaignMetrics.clicks}</p>
+                <p style={{ color: '#7EC8E3' }}><strong>Impressions:</strong> {selectedCampaignMetrics.impressions}</p>
               </div>
-              <h3>Chat with OpenAI about this campaign</h3>
+              <h3 style={{color: '#7EC8E3'}}>Chat with OpenAI about this campaign</h3>
               <div style={{ marginBottom: '15px', maxHeight: '400px', overflowY: 'auto' }}>
                 {messages.map((message, index) => (
                   <div
@@ -154,11 +154,12 @@ export default function HomePage() {
                     style={{
                       padding: '10px',
                       marginBottom: '10px',
-                      backgroundColor: message.role === "user" ? "#e0f7fa" : "#f1f1f1",
+                      backgroundColor: message.role === "user" ? "green" : "green",
                       borderRadius: '8px',
+                      color : 'white'
                     }}
                   >
-                    <strong>{message.role === "user" ? "You" : "OpenAI"}:</strong> {message.content}
+                    <strong style={{color: '#7EC8E3'}}>{message.role === "user" ? "You" : "OpenAI"}:</strong> {message.content}
                   </div>
                 ))}
               </div>
@@ -175,6 +176,7 @@ export default function HomePage() {
                     border: '1px solid #ddd',
                     marginBottom: '10px',
                     minHeight: '80px',
+                    color: '#7EC8E3'
                   }}
                   placeholder="Ask OpenAI about improving your campaign..."
                 ></textarea>
@@ -199,7 +201,7 @@ export default function HomePage() {
           )}
           <div style={{ marginTop: '20px' }}>
             {loading ? (
-              <p>Loading ad accounts...</p>
+              <p style={{color :'#7EC8E3'}}>Loading ad accounts...</p>
             ) : error ? (
               <p style={{ color: 'red' }}>{error}</p>
             ) : (
