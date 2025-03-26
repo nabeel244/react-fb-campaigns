@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f0f2f5' }}>
-      <h1 style={{ fontSize: '30px', fontWeight: '600', marginBottom: '20px' }}>Login with Facebook</h1>
+      <h1 style={{ fontSize: '30px', fontWeight: '600', marginBottom: '20px', color: 'black' }}>Login with Facebook</h1>
       <button
         onClick={() => signIn("facebook")}
         style={{

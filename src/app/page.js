@@ -81,16 +81,16 @@ export default function HomePage() {
 
   const [isCampaignMessageSent, setIsCampaignMessageSent] = useState(false); // Flag to track if campaign message is sent
 
-const handleSendMessage = () => {
-  if (!userInput.trim()) return;
+  const handleSendMessage = () => {
+    if (!userInput.trim()) return;
 
-  // Add user input to the message history
-  const newMessage = { role: "user", content: userInput };
+    // Add user input to the message history
+    const newMessage = { role: "user", content: userInput };
 
-  // Include campaign metrics in the conversation for context (only if it's not already sent)
-  const campaignMetricsMessage = {
-    role: "assistant",
-    content: `Campaign data: 
+    // Include campaign metrics in the conversation for context (only if it's not already sent)
+    const campaignMetricsMessage = {
+      role: "assistant",
+      content: `Campaign data: 
       Campaign Name: ${selectedCampaignMetrics?.campaign_name}, 
       Clicks: ${selectedCampaignMetrics?.clicks}, 
       Impressions: ${selectedCampaignMetrics?.impressions}, 
@@ -110,66 +110,67 @@ const handleSendMessage = () => {
       Frequency: ${selectedCampaignMetrics?.frequency}, 
       Start Date: ${selectedCampaignMetrics?.date_start}, 
       End Date: ${selectedCampaignMetrics?.date_stop}`
-  };
+    };
 
-  // If campaign metrics message has not been sent, add it to the message history
-  if (!isCampaignMessageSent) {
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      campaignMetricsMessage,  // Add campaign metrics message only once
-      newMessage,
-    ]);
-    setIsCampaignMessageSent(true); // Set flag to true after adding the campaign message
-  } else {
-    // If campaign metrics message is already sent, only add the user message
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      newMessage,
-    ]);
-  }
-
-  setIsLoading(true);
-
-  // Send the chat history (including campaign data and user input) to the OpenAI API for response
-  fetch("/api/conversation", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      conversationHistory: [
-        ...messages,
-        ...(isCampaignMessageSent ? [] : [campaignMetricsMessage]), // Add campaign data only if it's not already sent
+    // If campaign metrics message has not been sent, add it to the message history
+    if (!isCampaignMessageSent) {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        campaignMetricsMessage,  // Add campaign metrics message only once
         newMessage,
-      ],
-    }),
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.error) {
-        setError(data.error);
-      } else {
-        // Append OpenAI's response to the chat
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { role: "assistant", content: data.response },
-        ]);
-      }
+      ]);
+      setIsCampaignMessageSent(true); // Set flag to true after adding the campaign message
+    } else {
+      // If campaign metrics message is already sent, only add the user message
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        newMessage,
+      ]);
+    }
+
+    setIsLoading(true);
+
+    // Send the chat history (including campaign data and user input) to the OpenAI API for response
+    fetch("/api/conversation", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        conversationHistory: [
+          ...messages,
+          ...(isCampaignMessageSent ? [] : [campaignMetricsMessage]), // Add campaign data only if it's not already sent
+          newMessage,
+        ],
+      }),
     })
-    .catch((err) => {
-      setError("Error fetching OpenAI response");
-    })
-    .finally(() => {
-      setIsLoading(false);
-      setUserInput("");  // Clear the input field after sending the message
-    });
-};
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          setError(data.error);
+        } else {
+          // Append OpenAI's response to the chat
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { role: "assistant", content: data.response },
+          ]);
+        }
+      })
+      .catch((err) => {
+        console.log('error fetching opean ai response')
+        // setError("Error fetching OpenAI response");
+      })
+      .finally(() => {
+        setIsLoading(false);
+        setUserInput("");  // Clear the input field after sending the message
+      });
+  };
 
   // const handleSendMessage = () => {
   //   if (!userInput.trim()) return;
   //   // Add user input to the message history
   //   const newMessage = { role: "user", content: userInput };
-  
+
   //   // Include campaign metrics in the conversation for context
   //   const campaignMetricsMessage = {
   //     role: "assistant",
@@ -194,21 +195,21 @@ const handleSendMessage = () => {
   //       Start Date: ${selectedCampaignMetrics?.date_start}, 
   //       End Date: ${selectedCampaignMetrics?.date_stop}`
   //   };
-    
+
   //   // const campaignMetricsMessage = {
   //   //   role: "assistant",
   //   //   content: `Campaign data: Clicks: ${selectedCampaignMetrics?.clicks}, Impressions: ${selectedCampaignMetrics?.impressions}, Spend: ${selectedCampaignMetrics?.spend}, CPC: ${selectedCampaignMetrics?.cpc}, CPM: ${selectedCampaignMetrics?.cpm}, Conversions: ${selectedCampaignMetrics?.conversions}, Cost per Conversion: ${selectedCampaignMetrics?.cost_per_conversion}.`, // Example of key metrics
   //   // };
-  
+
   //   // Update the message history with campaign data and user input
   //   setMessages((prevMessages) => [
   //     ...prevMessages,
   //     campaignMetricsMessage,
   //     newMessage,
   //   ]);
-  
+
   //   setIsLoading(true);
-  
+
   //   // Send the chat history (including campaign data and user input) to the OpenAI API for response
   //   fetch("/api/conversation", {
   //     method: "POST",
@@ -243,7 +244,7 @@ const handleSendMessage = () => {
   //       setUserInput("");  // Clear the input field after sending the message
   //     });
   // };
-  
+
 
   return (
     <div style={{ padding: '30px', backgroundColor: '#f5f5f5' }}>
@@ -270,10 +271,10 @@ const handleSendMessage = () => {
           {selectedCampaignMetrics && (
             <div style={{ marginTop: '5px', padding: '20px', backgroundColor: '#fff', borderRadius: '10px' }}>
               <div style={{ marginBottom: '15px' }}>
-                <p style={{ color: '#7EC8E3' }}><strong>Clicks:</strong> {selectedCampaignMetrics.clicks}</p>
-                <p style={{ color: '#7EC8E3' }}><strong>Impressions:</strong> {selectedCampaignMetrics.impressions}</p>
+                <p style={{ color: 'black' }}><strong>Clicks:</strong> {selectedCampaignMetrics.clicks}</p>
+                <p style={{ color: 'black' }}><strong>Impressions:</strong> {selectedCampaignMetrics.impressions}</p>
               </div>
-              <h3 style={{color: '#7EC8E3'}}>Chat with OpenAI about this campaign</h3>
+              <h3 style={{ color: 'black' }}>Chat with OpenAI about this campaign</h3>
               <div style={{ marginBottom: '15px', maxHeight: '400px', overflowY: 'auto' }}>
                 {messages.map((message, index) => (
                   <div
@@ -281,15 +282,37 @@ const handleSendMessage = () => {
                     style={{
                       padding: '10px',
                       marginBottom: '10px',
-                      backgroundColor: message.role === "user" ? "green" : "green",
+                      backgroundColor: message.role === "user" ? "#f1f1f1" : "#ffffff", // Light grey for user, white for OpenAI
                       borderRadius: '8px',
-                      color : 'white'
+                      color: 'black',
+                      border: '1px solid #e0e0e0', // Light border for contrast
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)', // Subtle shadow to make it stand out
+                    }}
+                  >
+                    <strong style={{ color: '#7EC8E3' }}>
+                      {message.role === "user" ? "You" : "OpenAI"}:
+                    </strong>
+                    <p>{message.content}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* <div style={{ marginBottom: '15px', maxHeight: '400px', overflowY: 'auto' }}>
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      padding: '10px',
+                      marginBottom: '10px',
+                      backgroundColor: message.role === "user" ? "white" : "white",
+                      borderRadius: '8px',
+                      color : 'black'
                     }}
                   >
                     <strong style={{color: '#7EC8E3'}}>{message.role === "user" ? "You" : "OpenAI"}:</strong> {message.content}
                   </div>
                 ))}
-              </div>
+              </div> */}
 
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <textarea
@@ -303,7 +326,8 @@ const handleSendMessage = () => {
                     border: '1px solid #ddd',
                     marginBottom: '10px',
                     minHeight: '80px',
-                    color: '#7EC8E3'
+                    // color: '#7EC8E3'
+                    color: 'white'
                   }}
                   placeholder="Ask OpenAI about improving your campaign..."
                 ></textarea>
@@ -328,7 +352,7 @@ const handleSendMessage = () => {
           )}
           <div style={{ marginTop: '20px' }}>
             {loading ? (
-              <p style={{color :'#7EC8E3'}}>Loading ad accounts...</p>
+              <p style={{ color: '#7EC8E3' }}>Loading ad accounts...</p>
             ) : error ? (
               <p style={{ color: 'red' }}>{error}</p>
             ) : (
@@ -348,7 +372,7 @@ const handleSendMessage = () => {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '18px', fontWeight: '900',  color: 'black' }}>{account.name}</span>
+                      <span style={{ fontSize: '18px', fontWeight: '900', color: 'black' }}>{account.name}</span>
                       <span
                         style={{
                           fontSize: '14px',
@@ -367,7 +391,7 @@ const handleSendMessage = () => {
 
           {selectedAccount && campaigns.length > 0 && (
             <div style={{ marginTop: '30px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '600' }}>Campaigns for {selectedAccount}</h2>
+              <h2 style={{ fontSize: '24px', fontWeight: '600', color: 'black' }}>Campaigns for {selectedAccount}</h2>
               <ul style={{ listStyleType: 'none', padding: 0 }}>
                 {campaigns.map((campaign) => (
                   <li

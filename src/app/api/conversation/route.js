@@ -12,7 +12,6 @@ export async function POST(req) {
   if (!conversationHistory || conversationHistory.length === 0) {
     return new Response(JSON.stringify({ error: "No conversation history provided." }), { status: 400 });
   }
-  console.log(conversationHistory, 'this si conversation history');
 
   try {
     // Request a response from OpenAI API with the conversation history
