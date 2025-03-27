@@ -36,7 +36,7 @@ console.log('we are here right now')
 
     // Send request to OpenAI API to generate a response based on the prompt
     const response = await openai.chat.completions.create({
-      model: "gpt-4",  // Use "gpt-4" if needed and available
+      model: "gpt-40",  // Use "gpt-4" if needed and available
       messages: [
         {
           role: "system",

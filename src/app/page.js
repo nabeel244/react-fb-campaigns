@@ -130,8 +130,32 @@ export default function HomePage() {
 
     setIsLoading(true);
 
+    function fetchWithTimeout(url, options, timeout = 15000) {
+      return Promise.race([
+        fetch(url, options),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Request timed out")), timeout)
+        ),
+      ]);
+    }
+
+    // async function postWithRetry(url, options, retries = 3, delay = 1000) {
+    //   while (retries > 0) {
+    //     try {
+    //       const response = await fetch(url, options);
+    //       if (response.ok) return response;
+    //       throw new Error("Failed request");
+    //     } catch (error) {
+    //       retries--;
+    //       if (retries === 0) throw error;
+    //       console.log("Retrying...");
+    //       await new Promise(resolve => setTimeout(resolve, delay));
+    //     }
+    //   }
+    // }
+
     // Send the chat history (including campaign data and user input) to the OpenAI API for response
-    fetch("/api/conversation", {
+    fetchWithTimeout("/api/conversation", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
