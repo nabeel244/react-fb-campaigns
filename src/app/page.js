@@ -83,89 +83,48 @@ export default function HomePage() {
 
   const handleSendMessage = () => {
     if (!userInput.trim()) return;
-
+  
     // Add user input to the message history
     const newMessage = { role: "user", content: userInput };
-
-    // Include campaign metrics in the conversation for context (only if it's not already sent)
-    const campaignMetricsMessage = {
-      role: "assistant",
-      content: `Campaign data: 
-      Campaign Name: ${selectedCampaignMetrics?.campaign_name}, 
-      Clicks: ${selectedCampaignMetrics?.clicks}, 
-      Impressions: ${selectedCampaignMetrics?.impressions}, 
-      Spend: ${selectedCampaignMetrics?.spend}, 
-      CPC: ${selectedCampaignMetrics?.cpc}, 
-      CPM: ${selectedCampaignMetrics?.cpm}, 
-      Conversion Rate Ranking: ${selectedCampaignMetrics?.conversion_rate_ranking}, 
-      Cost per Action Type: ${JSON.stringify(selectedCampaignMetrics?.cost_per_action_type)}, 
-      Cost per Unique Click: ${selectedCampaignMetrics?.cost_per_unique_click}, 
-      Cost per Unique Outbound Click: ${JSON.stringify(selectedCampaignMetrics?.cost_per_unique_outbound_click)}, 
-      CTR: ${selectedCampaignMetrics?.ctr}, 
-      CPP: ${selectedCampaignMetrics?.cpp}, 
-      Objective: ${selectedCampaignMetrics?.objective}, 
-      Social Spend: ${selectedCampaignMetrics?.social_spend}, 
-      Quality Ranking: ${selectedCampaignMetrics?.quality_ranking}, 
-      Reach: ${selectedCampaignMetrics?.reach}, 
-      Frequency: ${selectedCampaignMetrics?.frequency}, 
-      Start Date: ${selectedCampaignMetrics?.date_start}, 
-      End Date: ${selectedCampaignMetrics?.date_stop}`
-    };
-
-    // If campaign metrics message has not been sent, add it to the message history
-    if (!isCampaignMessageSent) {
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        campaignMetricsMessage,  // Add campaign metrics message only once
-        newMessage,
-      ]);
-      setIsCampaignMessageSent(true); // Set flag to true after adding the campaign message
-    } else {
-      // If campaign metrics message is already sent, only add the user message
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        newMessage,
-      ]);
-    }
-
+  
+    // Prepare the message to send - only the user message and campaign data
+    const messagesToSend = [
+      {
+        role: "assistant",  // Add the campaign data along with the message
+        content: `Campaign data: 
+          Campaign Name: ${selectedCampaignMetrics?.campaign_name}, 
+          Clicks: ${selectedCampaignMetrics?.clicks}, 
+          Impressions: ${selectedCampaignMetrics?.impressions}, 
+          Spend: ${selectedCampaignMetrics?.spend}, 
+          CPC: ${selectedCampaignMetrics?.cpc}, 
+          CPM: ${selectedCampaignMetrics?.cpm}, 
+          Conversion Rate Ranking: ${selectedCampaignMetrics?.conversion_rate_ranking}, 
+          Cost per Action Type: ${JSON.stringify(selectedCampaignMetrics?.cost_per_action_type)}, 
+          Cost per Unique Click: ${selectedCampaignMetrics?.cost_per_unique_click}, 
+          Cost per Unique Outbound Click: ${JSON.stringify(selectedCampaignMetrics?.cost_per_unique_outbound_click)}, 
+          CTR: ${selectedCampaignMetrics?.ctr}, 
+          CPP: ${selectedCampaignMetrics?.cpp}, 
+          Objective: ${selectedCampaignMetrics?.objective}, 
+          Social Spend: ${selectedCampaignMetrics?.social_spend}, 
+          Quality Ranking: ${selectedCampaignMetrics?.quality_ranking}, 
+          Reach: ${selectedCampaignMetrics?.reach}, 
+          Frequency: ${selectedCampaignMetrics?.frequency}, 
+          Start Date: ${selectedCampaignMetrics?.date_start}, 
+          End Date: ${selectedCampaignMetrics?.date_stop}`
+      },
+      newMessage  // Add the user input message
+    ];
+  
     setIsLoading(true);
-
-    function fetchWithTimeout(url, options, timeout = 15000) {
-      return Promise.race([
-        fetch(url, options),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Request timed out")), timeout)
-        ),
-      ]);
-    }
-
-    async function postWithRetry(url, options, retries = 3, delay = 1000) {
-      while (retries > 0) {
-        try {
-          const response = await fetch(url, options);
-          if (response.ok) return response;
-          throw new Error("Failed request");
-        } catch (error) {
-          retries--;
-          if (retries === 0) throw error;
-          console.log("Retrying...");
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-    }
-
-    // Send the chat history (including campaign data and user input) to the OpenAI API for response
-    postWithRetry("/api/conversation", {
+  
+    // Send the new message and campaign data to the backend
+    fetch("/api/conversation", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        conversationHistory: [
-          ...messages,
-          ...(isCampaignMessageSent ? [] : [campaignMetricsMessage]), // Add campaign data only if it's not already sent
-          newMessage,
-        ],
+        conversationHistory: messagesToSend,  // Send only the current message and campaign data
       }),
     })
       .then((res) => res.json())
@@ -181,61 +140,91 @@ export default function HomePage() {
         }
       })
       .catch((err) => {
-        console.log('error fetching opean ai response')
-        // setError("Error fetching OpenAI response");
+        console.log("Error fetching OpenAI response");
       })
       .finally(() => {
         setIsLoading(false);
         setUserInput("");  // Clear the input field after sending the message
       });
   };
-
+  
+  
+  
   // const handleSendMessage = () => {
   //   if (!userInput.trim()) return;
+
   //   // Add user input to the message history
   //   const newMessage = { role: "user", content: userInput };
 
-  //   // Include campaign metrics in the conversation for context
+  //   // Include campaign metrics in the conversation for context (only if it's not already sent)
   //   const campaignMetricsMessage = {
   //     role: "assistant",
   //     content: `Campaign data: 
-  //       Campaign Name: ${selectedCampaignMetrics?.campaign_name}, 
-  //       Clicks: ${selectedCampaignMetrics?.clicks}, 
-  //       Impressions: ${selectedCampaignMetrics?.impressions}, 
-  //       Spend: ${selectedCampaignMetrics?.spend}, 
-  //       CPC: ${selectedCampaignMetrics?.cpc}, 
-  //       CPM: ${selectedCampaignMetrics?.cpm}, 
-  //       Conversion Rate Ranking: ${selectedCampaignMetrics?.conversion_rate_ranking}, 
-  //       Cost per Action Type: ${JSON.stringify(selectedCampaignMetrics?.cost_per_action_type)}, 
-  //       Cost per Unique Click: ${selectedCampaignMetrics?.cost_per_unique_click}, 
-  //       Cost per Unique Outbound Click: ${JSON.stringify(selectedCampaignMetrics?.cost_per_unique_outbound_click)}, 
-  //       CTR: ${selectedCampaignMetrics?.ctr}, 
-  //       CPP: ${selectedCampaignMetrics?.cpp}, 
-  //       Objective: ${selectedCampaignMetrics?.objective}, 
-  //       Social Spend: ${selectedCampaignMetrics?.social_spend}, 
-  //       Quality Ranking: ${selectedCampaignMetrics?.quality_ranking}, 
-  //       Reach: ${selectedCampaignMetrics?.reach}, 
-  //       Frequency: ${selectedCampaignMetrics?.frequency}, 
-  //       Start Date: ${selectedCampaignMetrics?.date_start}, 
-  //       End Date: ${selectedCampaignMetrics?.date_stop}`
+  //     Campaign Name: ${selectedCampaignMetrics?.campaign_name}, 
+  //     Clicks: ${selectedCampaignMetrics?.clicks}, 
+  //     Impressions: ${selectedCampaignMetrics?.impressions}, 
+  //     Spend: ${selectedCampaignMetrics?.spend}, 
+  //     CPC: ${selectedCampaignMetrics?.cpc}, 
+  //     CPM: ${selectedCampaignMetrics?.cpm}, 
+  //     Conversion Rate Ranking: ${selectedCampaignMetrics?.conversion_rate_ranking}, 
+  //     Cost per Action Type: ${JSON.stringify(selectedCampaignMetrics?.cost_per_action_type)}, 
+  //     Cost per Unique Click: ${selectedCampaignMetrics?.cost_per_unique_click}, 
+  //     Cost per Unique Outbound Click: ${JSON.stringify(selectedCampaignMetrics?.cost_per_unique_outbound_click)}, 
+  //     CTR: ${selectedCampaignMetrics?.ctr}, 
+  //     CPP: ${selectedCampaignMetrics?.cpp}, 
+  //     Objective: ${selectedCampaignMetrics?.objective}, 
+  //     Social Spend: ${selectedCampaignMetrics?.social_spend}, 
+  //     Quality Ranking: ${selectedCampaignMetrics?.quality_ranking}, 
+  //     Reach: ${selectedCampaignMetrics?.reach}, 
+  //     Frequency: ${selectedCampaignMetrics?.frequency}, 
+  //     Start Date: ${selectedCampaignMetrics?.date_start}, 
+  //     End Date: ${selectedCampaignMetrics?.date_stop}`
   //   };
 
-  //   // const campaignMetricsMessage = {
-  //   //   role: "assistant",
-  //   //   content: `Campaign data: Clicks: ${selectedCampaignMetrics?.clicks}, Impressions: ${selectedCampaignMetrics?.impressions}, Spend: ${selectedCampaignMetrics?.spend}, CPC: ${selectedCampaignMetrics?.cpc}, CPM: ${selectedCampaignMetrics?.cpm}, Conversions: ${selectedCampaignMetrics?.conversions}, Cost per Conversion: ${selectedCampaignMetrics?.cost_per_conversion}.`, // Example of key metrics
-  //   // };
-
-  //   // Update the message history with campaign data and user input
-  //   setMessages((prevMessages) => [
-  //     ...prevMessages,
-  //     campaignMetricsMessage,
-  //     newMessage,
-  //   ]);
+  //   // If campaign metrics message has not been sent, add it to the message history
+  //   if (!isCampaignMessageSent) {
+  //     setMessages((prevMessages) => [
+  //       ...prevMessages,
+  //       campaignMetricsMessage,  // Add campaign metrics message only once
+  //       newMessage,
+  //     ]);
+  //     setIsCampaignMessageSent(true); // Set flag to true after adding the campaign message
+  //   } else {
+  //     // If campaign metrics message is already sent, only add the user message
+  //     setMessages((prevMessages) => [
+  //       ...prevMessages,
+  //       newMessage,
+  //     ]);
+  //   }
 
   //   setIsLoading(true);
 
+  //   function fetchWithTimeout(url, options, timeout = 15000) {
+  //     return Promise.race([
+  //       fetch(url, options),
+  //       new Promise((_, reject) =>
+  //         setTimeout(() => reject(new Error("Request timed out")), timeout)
+  //       ),
+  //     ]);
+  //   }
+
+  //   async function postWithRetry(url, options, retries = 3, delay = 1000) {
+  //     while (retries > 0) {
+  //       try {
+  //         const response = await fetch(url, options);
+  //         if (response.ok) return response;
+  //         throw new Error("Failed request");
+  //       } catch (error) {
+  //         retries--;
+  //         if (retries === 0) throw error;
+  //         console.log("Retrying...");
+  //         await new Promise(resolve => setTimeout(resolve, delay));
+  //       }
+  //     }
+  //   }
+
   //   // Send the chat history (including campaign data and user input) to the OpenAI API for response
-  //   fetch("/api/conversation", {
+  //   postWithRetry("/api/conversation", {
   //     method: "POST",
   //     headers: {
   //       "Content-Type": "application/json",
@@ -243,8 +232,8 @@ export default function HomePage() {
   //     body: JSON.stringify({
   //       conversationHistory: [
   //         ...messages,
-  //         campaignMetricsMessage,  // Include campaign data as part of the history
-  //         { role: "user", content: userInput },  // Add the new user message
+  //         ...(isCampaignMessageSent ? [] : [campaignMetricsMessage]), // Add campaign data only if it's not already sent
+  //         newMessage,
   //       ],
   //     }),
   //   })
@@ -261,7 +250,8 @@ export default function HomePage() {
   //       }
   //     })
   //     .catch((err) => {
-  //       setError("Error fetching OpenAI response");
+  //       console.log('error fetching opean ai response')
+  //       // setError("Error fetching OpenAI response");
   //     })
   //     .finally(() => {
   //       setIsLoading(false);

@@ -1,5 +1,3 @@
-// /src/app/api/openai/conversation/route.js
-
 import { OpenAI } from "openai";  // Ensure you're using the correct import
 
 const openai = new OpenAI({
@@ -8,16 +6,16 @@ const openai = new OpenAI({
 
 export async function POST(req) {
   const { conversationHistory } = await req.json();  // Extract conversation data from the body
-
+ console.log(conversationHistory, 'conversation history')
   if (!conversationHistory || conversationHistory.length === 0) {
     return new Response(JSON.stringify({ error: "No conversation history provided." }), { status: 400 });
   }
 
   try {
-    // Request a response from OpenAI API with the conversation history
+    // Only pass the most recent message and any relevant context
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-2024-04-09",
-      messages: conversationHistory,  // Pass the entire conversation history
+      model: "gpt-4-turbo-2024-04-09",  // Ensure the correct model is used
+      messages: conversationHistory,    // Pass only the required context and the user message
     });
 
     // Send the response back to the frontend
