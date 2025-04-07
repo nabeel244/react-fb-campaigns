@@ -14,9 +14,13 @@ export async function POST(req) {
   try {
     // Only pass the most recent message and any relevant context
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-2024-04-09",  // Ensure the correct model is used
-      messages: conversationHistory,    // Pass only the required context and the user message
+      model: "gpt-4-turbo-2024-04-09",
+      messages: conversationHistory.map((msg) => ({
+        role: msg.role || "user",
+        content: msg.content
+      })),
     });
+    
 
     // Send the response back to the frontend
     const suggestion = response.choices[0].message.content.trim();

@@ -89,8 +89,7 @@ export default function HomePage() {
   
     // Prepare the message to send - only the user message and campaign data
     const messagesToSend = [
-      {
-        role: "assistant",  // Add the campaign data along with the message
+      {  // Add the campaign data along with the message
         content: `Campaign data: 
           Campaign Name: ${selectedCampaignMetrics?.campaign_name}, 
           Clicks: ${selectedCampaignMetrics?.clicks}, 
@@ -135,7 +134,7 @@ export default function HomePage() {
           // Append OpenAI's response to the chat
           setMessages((prevMessages) => [
             ...prevMessages,
-            { role: "assistant", content: data.response },
+            {  content: data.response },
           ]);
         }
       })
