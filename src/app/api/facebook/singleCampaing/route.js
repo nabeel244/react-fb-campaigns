@@ -26,12 +26,35 @@ export async function GET(req) {
     const insightsResponse = await axios.get(
       `https://graph.facebook.com/v19.0/${campaignId}/insights?fields=clicks,impressions,spend,cpc,cpm,campaign_name,conversion_rate_ranking,conversion_values,conversions,cost_per_estimated_ad_recallers,cost_per_conversion,cost_per_action_type,cost_per_unique_click,cost_per_unique_outbound_click,ctr,cpp,objective,social_spend,quality_ranking,reach,frequency,ad_name,adset_name,cost_per_purchase&time_range={"since":"2022-10-01","until":"2025-04-18"}&access_token=${accessToken}`
     );
-    
-    
 
-    console.log("Campaign Insights Response:", insightsResponse.data); // Log the insights response
+    // Fetch Ad Set Details (targeting, location, and audience)
+    const adSetResponse = await axios.get(
+      `https://graph.facebook.com/v19.0/${campaignId}/adsets?fields=name,targeting,optimization_goal,bid_amount,location,audience,age,gender,interests&access_token=${accessToken}`
+    );
+
+
+    const adSetData = adSetResponse.data.data;
+    console.log(adSetData, 'this is ad set response')
+
+
+    // Get Ads Data (Creative, Placement, etc.)
+    // const adResponse = await axios.get(
+    //   `https://graph.facebook.com/v19.0/${campaignId}/ads?fields=name,adset_id,creative,placement,objective,status&access_token=${accessToken}`
+    // );
+    // const adsData = adResponse.data.data;
+    // console.log(adsData, 'this is ad response')
+
+
+    // Get Detailed Campaign Info (Objective, Buying Type, Status)
+    // const campaignDetailsResponse = await axios.get(
+    //   `https://graph.facebook.com/v19.0/${campaignId}?fields=id,name,status,objective,buying_type,start_time,end_time&access_token=${accessToken}`
+    // );
+
+    // // Log the insights response
+    // console.log(campaignDetailsResponse, 'this is campaign response')
 
     const campaignData = insightsResponse.data.data[0];
+
 
     if (!campaignData) {
       return new Response(JSON.stringify({ error: "No campaign data found" }), { status: 404 });
@@ -59,11 +82,14 @@ export async function GET(req) {
         frequency: campaignData.frequency,
         date_start: campaignData.date_start,  // Date fields
         date_stop: campaignData.date_stop,
-        
+        ad_sets: adSetData
+
+
+        // Ad Set Details (Targeting, Location, Audience, etc.)
       }),
       { status: 200 }
     );
-    
+
   } catch (error) {
     console.error("Error fetching campaign insights:", error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });

@@ -109,7 +109,9 @@ export default function HomePage() {
           Reach: ${selectedCampaignMetrics?.reach}, 
           Frequency: ${selectedCampaignMetrics?.frequency}, 
           Start Date: ${selectedCampaignMetrics?.date_start}, 
-          End Date: ${selectedCampaignMetrics?.date_stop}`
+          End Date: ${selectedCampaignMetrics?.date_stop},
+          ad Sets: ${JSON.stringify(selectedCampaignMetrics?.ad_sets)}
+          `
       },
       newMessage  // Add the user input message
     ];
