@@ -34,15 +34,36 @@ export async function GET(req) {
 
 
     const adSetData = adSetResponse.data.data;
-    console.log(adSetData, 'this is ad set response')
+    // console.log(adSetData, 'this is ad set response')
 
+    const strategyResponse = await axios.get(
+      `https://graph.facebook.com/v19.0/${campaignId}?fields=objective,last_budget_toggling_time,created_time,can_use_spend_cap,campaign_group_active_time,buying_type,issues_info,pacing_type,primary_attribution,promoted_object,smart_promotion_type,source_campaign,spend_cap,ad_studies&access_token=${accessToken}`
+    );
 
-    // Get Ads Data (Creative, Placement, etc.)
-    // const adResponse = await axios.get(
-    //   `https://graph.facebook.com/v19.0/${campaignId}/ads?fields=name,adset_id,creative,placement,objective,status&access_token=${accessToken}`
-    // );
-    // const adsData = adResponse.data.data;
-    // console.log(adsData, 'this is ad response')
+    // console.log(strategyResponse, 'this is strategy response')
+
+    const strategyData = strategyResponse.data;
+      console.log(strategyData, 'this is strategy response')
+
+    const adResponse = await axios.get(
+      `https://graph.facebook.com/v19.0/${campaignId}/ads?fields=name,creative,objective&access_token=${accessToken}`
+    );
+    
+    const adsData = adResponse.data.data;
+  
+    // Extract the creative ID
+const creativeId = adsData[0].creative.id; // Get the first ad's creative ID
+
+// Proceed to fetch detailed creative data
+let creativeData = null; // Initialize creativeData variable
+if (creativeId) {
+  // Fetch creative details using the creative ID
+  const creativeResponse = await axios.get(
+    `https://graph.facebook.com/v19.0/${creativeId}?fields=body,title,name,object_type,product_data,url_tags&access_token=${accessToken}`
+  );
+  
+   creativeData = creativeResponse.data;
+}
 
 
     // Get Detailed Campaign Info (Objective, Buying Type, Status)
@@ -82,7 +103,9 @@ export async function GET(req) {
         frequency: campaignData.frequency,
         date_start: campaignData.date_start,  // Date fields
         date_stop: campaignData.date_stop,
-        ad_sets: adSetData
+        ad_sets: adSetData,
+        creative_data: creativeData,
+        strategy_data: strategyData,
 
 
         // Ad Set Details (Targeting, Location, Audience, etc.)

@@ -6,7 +6,6 @@ const openai = new OpenAI({
 
 export async function POST(req) {
   const { conversationHistory } = await req.json();  // Extract conversation data from the body
- console.log(conversationHistory, 'conversation history')
   if (!conversationHistory || conversationHistory.length === 0) {
     return new Response(JSON.stringify({ error: "No conversation history provided." }), { status: 400 });
   }
