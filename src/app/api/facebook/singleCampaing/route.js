@@ -65,21 +65,51 @@ if (creativeId) {
    creativeData = creativeResponse.data;
 }
 
-
-    // Get Detailed Campaign Info (Objective, Buying Type, Status)
-    // const campaignDetailsResponse = await axios.get(
-    //   `https://graph.facebook.com/v19.0/${campaignId}?fields=id,name,status,objective,buying_type,start_time,end_time&access_token=${accessToken}`
-    // );
-
-    // // Log the insights response
-    // console.log(campaignDetailsResponse, 'this is campaign response')
-
     const campaignData = insightsResponse.data.data[0];
 
 
     if (!campaignData) {
       return new Response(JSON.stringify({ error: "No campaign data found" }), { status: 404 });
     }
+
+    const dailyInsightsResponse = await axios.get(
+      `https://graph.facebook.com/v19.0/${campaignId}/insights?time_increment=1&fields=clicks,impressions,spend,cpc,cpm,ctr,reach,frequency,actions&access_token=${accessToken}`
+    );
+    const dailyInsights = dailyInsightsResponse.data.data;
+
+    const platformBreakdownResponse = await axios.get(
+      `https://graph.facebook.com/v19.0/${campaignId}/insights?breakdowns=publisher_platform&fields=clicks,impressions,spend,cpc,cpm,ctr&access_token=${accessToken}`
+    );
+    const platformData = platformBreakdownResponse.data.data;
+
+
+    const actionTypesResponse = await axios.get(
+      `https://graph.facebook.com/v19.0/${campaignId}/insights?fields=actions,action_values&access_token=${accessToken}`
+    );
+    const actionData = actionTypesResponse.data.data;
+
+    const ageGenderResponse = await axios.get(
+      `https://graph.facebook.com/v19.0/${campaignId}/insights?breakdowns=age,gender&fields=clicks,impressions,spend&access_token=${accessToken}`
+    );
+    const demographicData = ageGenderResponse.data.data;
+
+    const countryResponse = await axios.get(
+      `https://graph.facebook.com/v19.0/${campaignId}/insights?breakdowns=country&fields=clicks,impressions,spend&access_token=${accessToken}`
+    );
+    const countryData = countryResponse.data.data;
+    
+    const placementResponse = await axios.get(
+      `https://graph.facebook.com/v19.0/${campaignId}/insights?fields=clicks,impressions,spend,cpc,cpm,ctr&breakdowns=publisher_platform,platform_position&access_token=${accessToken}`
+    );
+    const placementData = placementResponse.data.data;
+    console.log(placementData, 'this is placement data')
+    
+    const deviceBreakdownResponse = await axios.get(
+      `https://graph.facebook.com/v19.0/${campaignId}/insights?breakdowns=device_platform&fields=clicks,impressions,spend,cpc,cpm,ctr&access_token=${accessToken}`
+    );
+    const deviceData = deviceBreakdownResponse.data.data;
+    
+    
 
     // Return all the campaign data
     return new Response(
@@ -106,6 +136,13 @@ if (creativeId) {
         ad_sets: adSetData,
         creative_data: creativeData,
         strategy_data: strategyData,
+        daily_insights: dailyInsights,
+        platform_data: platformData,
+        action_data: actionData,
+        demographic_data: demographicData,
+        country_data: countryData,
+        placement_data: placementData,
+        device_data: deviceData,
 
 
         // Ad Set Details (Targeting, Location, Audience, etc.)

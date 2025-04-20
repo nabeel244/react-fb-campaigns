@@ -112,7 +112,15 @@ export default function HomePage() {
           End Date: ${selectedCampaignMetrics?.date_stop},
           ad Sets: ${JSON.stringify(selectedCampaignMetrics?.ad_sets)}
           creative_data: ${JSON.stringify(selectedCampaignMetrics?.creative_data)}
-          strategy_data: ${JSON.stringify(selectedCampaignMetrics?.strategy_data)}`,
+          strategy_data: ${JSON.stringify(selectedCampaignMetrics?.strategy_data)}
+          daily_insights: ${JSON.stringify(selectedCampaignMetrics?.daily_insights)}
+          platform_data: ${JSON.stringify(selectedCampaignMetrics?.platform_data)}
+          action_data: ${JSON.stringify(selectedCampaignMetrics?.action_data)}
+          demographic_data: ${JSON.stringify(selectedCampaignMetrics?.demographic_data)}
+          country_data: ${JSON.stringify(selectedCampaignMetrics?.country_data)}
+          device_data: ${JSON.stringify(selectedCampaignMetrics?.device_data)}
+          placement_data: ${JSON.stringify(selectedCampaignMetrics?.placement_data)}
+          `,
       },
       newMessage  // Add the user input message
     ];
