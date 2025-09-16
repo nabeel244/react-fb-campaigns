@@ -23,6 +23,14 @@ export default function HomePage() {
   
   // Error state
   const [error, setError] = useState("");
+  
+  // Chatbot states
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [userInput, setUserInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [currentChatId, setCurrentChatId] = useState(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -98,6 +106,17 @@ export default function HomePage() {
         
         setSelectedCampaignMetrics(data);
         setIsModalOpen(true);
+        
+        // Open chatbot and create new chat session
+        const newChatId = Date.now().toString();
+        setCurrentChatId(newChatId);
+        setMessages([{
+          id: 1,
+          type: 'bot',
+          message: `Hello! I'm your Facebook Ads AI assistant. I can help you analyze your campaign "${data.campaign_name}" data, provide insights, and answer questions about your advertising performance. How can I help you today?`,
+          timestamp: new Date()
+        }]);
+        setIsChatOpen(true);
       }
     } catch (err) {
       setError("Error fetching campaign insights");
@@ -110,6 +129,108 @@ export default function HomePage() {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedCampaignMetrics(null);
+  };
+
+  // Chatbot functions
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen);
+  };
+
+  const closeChat = () => {
+    setIsChatOpen(false);
+    setMessages([]);
+    setCurrentChatId(null);
+  };
+
+  const startNewChat = () => {
+    const newChatId = Date.now().toString();
+    setCurrentChatId(newChatId);
+    setMessages([{
+      id: 1,
+      type: 'bot',
+      message: 'Hello! I\'m your Facebook Ads AI assistant. I can help you analyze your campaign data, provide insights, and answer questions about your advertising performance. How can I help you today?',
+      timestamp: new Date()
+    }]);
+    setIsChatOpen(true);
+  };
+
+  const sendMessage = async () => {
+    if (!userInput.trim()) return;
+
+    const newMessage = {
+      id: messages.length + 1,
+      type: 'user',
+      message: userInput,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+    setUserInput("");
+    setIsTyping(true);
+
+    try {
+      // TODO: Replace with actual API call to addrunner-chatbot-python
+      // For now, simulate a response
+      setTimeout(() => {
+        const botResponse = {
+          id: messages.length + 2,
+          type: 'bot',
+          message: `I received your message: "${userInput}". This is a placeholder response. The actual integration with your Python chatbot API will be implemented next.`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botResponse]);
+        setIsTyping(false);
+      }, 1500);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setIsTyping(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  // Helper function to safely render values
+  const renderValue = (value) => {
+    if (value === null || value === undefined) return 'N/A';
+    if (typeof value === 'object') {
+      return JSON.stringify(value, null, 2);
+    }
+    return value;
+  };
+
+  // Helper function to format action arrays for better display
+  const formatActionData = (data) => {
+    if (!data) return 'N/A';
+    if (typeof data === 'string') return data;
+    if (Array.isArray(data)) {
+      if (data.length === 0) return 'No data';
+      return data.map(item => {
+        if (item.action_type && item.value) {
+          // Clean up action type names for better readability
+          const cleanActionType = item.action_type
+            .replace('offsite_conversion.fb_pixel_custom', 'Custom Conversion')
+            .replace('omni_landing_page_view', 'Landing Page View')
+            .replace('post_engagement', 'Post Engagement')
+            .replace('page_engagement', 'Page Engagement')
+            .replace('landing_page_view', 'Landing Page View')
+            .replace('video_view', 'Video View')
+            .replace('link_click', 'Link Click')
+            .replace('outbound_click', 'Outbound Click');
+          
+          return `${cleanActionType}: ${item.value}`;
+        }
+        return JSON.stringify(item);
+      }).join(' | ');
+    }
+    if (typeof data === 'object') {
+      return JSON.stringify(data, null, 2);
+    }
+    return data;
   };
 
 
@@ -138,10 +259,337 @@ export default function HomePage() {
     );
   };
 
+  // ChatGPT-style Components
+  const ChatMessage = ({ message }) => {
+    const isUser = message.type === 'user';
+
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: isUser ? 'flex-end' : 'flex-start',
+        marginBottom: '20px',
+        padding: '0 20px'
+      }}>
+        <div style={{
+          maxWidth: '70%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: isUser ? 'flex-end' : 'flex-start'
+        }}>
+          <div style={{
+            padding: '12px 16px',
+            backgroundColor: isUser ? '#007bff' : '#f1f3f4',
+            color: isUser ? 'white' : '#333',
+            borderRadius: '12px',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            wordWrap: 'break-word',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {message.message}
+          </div>
+          <div style={{
+            fontSize: '11px',
+            color: '#666',
+            marginTop: '4px',
+            padding: '0 4px'
+          }}>
+            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const TypingIndicator = () => (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'flex-start',
+      marginBottom: '20px',
+      padding: '0 20px'
+    }}>
+      <div style={{
+        padding: '12px 16px',
+        backgroundColor: '#f1f3f4',
+        borderRadius: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+      }}>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <div style={{
+            width: '6px',
+            height: '6px',
+            backgroundColor: '#666',
+            borderRadius: '50%',
+            animation: 'typing 1.4s infinite ease-in-out'
+          }}></div>
+          <div style={{
+            width: '6px',
+            height: '6px',
+            backgroundColor: '#666',
+            borderRadius: '50%',
+            animation: 'typing 1.4s infinite ease-in-out 0.2s'
+          }}></div>
+          <div style={{
+            width: '6px',
+            height: '6px',
+            backgroundColor: '#666',
+            borderRadius: '50%',
+            animation: 'typing 1.4s infinite ease-in-out 0.4s'
+          }}></div>
+        </div>
+        <span style={{ fontSize: '14px', color: '#666' }}>AI is thinking...</span>
+      </div>
+    </div>
+  );
+
+  const ChatHistorySidebar = () => (
+    <div style={{
+      width: '260px',
+      backgroundColor: '#f8f9fa',
+      borderRight: '1px solid #e0e0e0',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%'
+    }}>
+      {/* Sidebar Header */}
+      <div style={{
+        padding: '20px',
+        borderBottom: '1px solid #e0e0e0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#333' }}>
+          Chat History
+        </h3>
+        <button
+          onClick={startNewChat}
+          style={{
+            background: 'none',
+            border: '1px solid #007bff',
+            color: '#007bff',
+            padding: '6px 12px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: '500'
+          }}
+        >
+          + New Chat
+        </button>
+      </div>
+
+      {/* Chat History List */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '10px 0'
+      }}>
+        {chatHistory.length === 0 ? (
+          <div style={{
+            padding: '20px',
+            textAlign: 'center',
+            color: '#666',
+            fontSize: '14px'
+          }}>
+            No chat history yet
+          </div>
+        ) : (
+          chatHistory.map((chat) => (
+            <div
+              key={chat.id}
+              onClick={() => setCurrentChatId(chat.id)}
+              style={{
+                padding: '12px 20px',
+                cursor: 'pointer',
+                borderBottom: '1px solid #f0f0f0',
+                backgroundColor: currentChatId === chat.id ? '#e3f2fd' : 'transparent',
+                transition: 'background-color 0.2s ease'
+              }}
+            >
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#333',
+                marginBottom: '4px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {chat.title}
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: '#666'
+              }}>
+                {chat.timestamp.toLocaleDateString()}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  const ChatbotInterface = () => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'white',
+      zIndex: 1000,
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      {/* Top Header */}
+      <div style={{
+        height: '60px',
+        backgroundColor: '#007bff',
+        color: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 20px',
+        borderBottom: '1px solid #0056b3'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '16px'
+          }}>
+            🤖
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+              Facebook Ads AI Assistant
+            </h2>
+            <div style={{ fontSize: '12px', opacity: 0.9 }}>
+              {selectedCampaignMetrics ? `Analyzing: ${selectedCampaignMetrics.campaign_name}` : 'Ready to help'}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={closeChat}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'white',
+            fontSize: '24px',
+            cursor: 'pointer',
+            padding: '8px',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Main Chat Area */}
+      <div style={{ display: 'flex', flex: 1, height: 'calc(100vh - 60px)' }}>
+        {/* Sidebar */}
+        <ChatHistorySidebar />
+
+        {/* Chat Messages */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%'
+        }}>
+          {/* Messages Area */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '20px 0',
+            backgroundColor: '#fafafa'
+          }}>
+            {messages.map((message) => (
+              <ChatMessage key={message.id} message={message} />
+            ))}
+            {isTyping && <TypingIndicator />}
+          </div>
+
+          {/* Input Area */}
+          <div style={{
+            padding: '20px',
+            backgroundColor: 'white',
+            borderTop: '1px solid #e0e0e0'
+          }}>
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              alignItems: 'flex-end',
+              maxWidth: '800px',
+              margin: '0 auto'
+            }}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <textarea
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask me about your campaign data..."
+                  style={{
+                    width: '100%',
+                    minHeight: '44px',
+                    maxHeight: '120px',
+                    padding: '12px 16px',
+                    border: '1px solid #ddd',
+                    borderRadius: '22px',
+                    fontSize: '14px',
+                    resize: 'none',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.4',
+                    backgroundColor: '#f8f9fa'
+                  }}
+                />
+              </div>
+              <button
+                onClick={sendMessage}
+                disabled={!userInput.trim() || isTyping}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  backgroundColor: userInput.trim() && !isTyping ? '#007bff' : '#ccc',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  cursor: userInput.trim() && !isTyping ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '18px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                ➤
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ padding: '30px', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
       {status === "loading" ? (
         <LoadingSpinner size="large" text="Authenticating..." />
+      ) : isChatOpen ? (
+        <ChatbotInterface />
       ) : (
         <>
           {/* Header */}
@@ -292,7 +740,7 @@ export default function HomePage() {
                       border: '1px solid #e9ecef'
                     }}>
                       <div style={{ fontSize: '32px', fontWeight: '700', color: '#1877F2', marginBottom: '5px' }}>
-                        {selectedCampaignMetrics.clicks}
+                        {renderValue(selectedCampaignMetrics.clicks)}
                       </div>
                       <div style={{ fontSize: '14px', color: '#666', fontWeight: '600' }}>Clicks</div>
                     </div>
@@ -305,7 +753,7 @@ export default function HomePage() {
                       border: '1px solid #e9ecef'
                     }}>
                       <div style={{ fontSize: '32px', fontWeight: '700', color: '#28a745', marginBottom: '5px' }}>
-                        {selectedCampaignMetrics.impressions?.toLocaleString()}
+                        {renderValue(selectedCampaignMetrics.impressions)?.toLocaleString()}
                       </div>
                       <div style={{ fontSize: '14px', color: '#666', fontWeight: '600' }}>Impressions</div>
                     </div>
@@ -318,7 +766,7 @@ export default function HomePage() {
                       border: '1px solid #e9ecef'
                     }}>
                       <div style={{ fontSize: '32px', fontWeight: '700', color: '#dc3545', marginBottom: '5px' }}>
-                        ${selectedCampaignMetrics.spend}
+                        ${renderValue(selectedCampaignMetrics.spend)}
                       </div>
                       <div style={{ fontSize: '14px', color: '#666', fontWeight: '600' }}>Spend</div>
                     </div>
@@ -331,7 +779,7 @@ export default function HomePage() {
                       border: '1px solid #e9ecef'
                     }}>
                       <div style={{ fontSize: '32px', fontWeight: '700', color: '#ffc107', marginBottom: '5px' }}>
-                        {selectedCampaignMetrics.ctr}%
+                        {renderValue(selectedCampaignMetrics.ctr)}%
                       </div>
                       <div style={{ fontSize: '14px', color: '#666', fontWeight: '600' }}>CTR</div>
                     </div>
@@ -348,22 +796,22 @@ export default function HomePage() {
                       gap: '15px' 
                     }}>
                       <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <strong style={{ color: '#495057' }}>CPC:</strong> ${selectedCampaignMetrics.cpc}
+                        <strong style={{ color: '#495057' }}>CPC:</strong> <span style={{ color: '#495057' }}>${renderValue(selectedCampaignMetrics.cpc)}</span>
                       </div>
                       <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <strong style={{ color: '#495057' }}>CPM:</strong> ${selectedCampaignMetrics.cpm}
+                        <strong style={{ color: '#495057' }}>CPM:</strong> <span style={{ color: '#495057' }}>${renderValue(selectedCampaignMetrics.cpm)}</span>
                       </div>
                       <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <strong style={{ color: '#495057' }}>Reach:</strong> {selectedCampaignMetrics.reach?.toLocaleString()}
+                        <strong style={{ color: '#495057' }}>Reach:</strong> <span style={{ color: '#495057' }}>{selectedCampaignMetrics.reach?.toLocaleString()}</span>
                       </div>
                       <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <strong style={{ color: '#495057' }}>Frequency:</strong> {selectedCampaignMetrics.frequency}
+                        <strong style={{ color: '#495057' }}>Frequency:</strong> <span style={{ color: '#495057' }}>{selectedCampaignMetrics.frequency}</span>
                       </div>
                       <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <strong style={{ color: '#495057' }}>CPP:</strong> ${selectedCampaignMetrics.cpp}
+                        <strong style={{ color: '#495057' }}>CPP:</strong> <span style={{ color: '#495057' }}>${renderValue(selectedCampaignMetrics.cpp)}</span>
                       </div>
                       <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                        <strong style={{ color: '#495057' }}>Social Spend:</strong> ${selectedCampaignMetrics.social_spend}
+                        <strong style={{ color: '#495057' }}>Social Spend:</strong> <span style={{ color: '#495057' }}>${renderValue(selectedCampaignMetrics.social_spend)}</span>
                       </div>
                     </div>
                   </div>
@@ -381,22 +829,32 @@ export default function HomePage() {
                       }}>
                         {selectedCampaignMetrics.conversions && (
                           <div style={{ padding: '15px', backgroundColor: '#e8f5e8', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
-                            <strong style={{ color: '#155724' }}>Conversions:</strong> {selectedCampaignMetrics.conversions}
+                            <strong style={{ color: '#155724' }}>Conversions:</strong> <span style={{ color: '#155724' }}>{formatActionData(selectedCampaignMetrics.conversions)}</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.website_purchase_roas && (
                           <div style={{ padding: '15px', backgroundColor: '#e8f5e8', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
-                            <strong style={{ color: '#155724' }}>ROAS:</strong> {selectedCampaignMetrics.website_purchase_roas}x
+                            <strong style={{ color: '#155724' }}>ROAS:</strong> <span style={{ color: '#155724' }}>{renderValue(selectedCampaignMetrics.website_purchase_roas)}x</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.cost_per_conversion && (
                           <div style={{ padding: '15px', backgroundColor: '#e8f5e8', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
-                            <strong style={{ color: '#155724' }}>Cost per Conversion:</strong> ${selectedCampaignMetrics.cost_per_conversion}
+                            <strong style={{ color: '#155724' }}>Cost per Conversion:</strong> <span style={{ color: '#155724' }}>{formatActionData(selectedCampaignMetrics.cost_per_conversion)}</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.cost_per_purchase && (
                           <div style={{ padding: '15px', backgroundColor: '#e8f5e8', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
-                            <strong style={{ color: '#155724' }}>Cost per Purchase:</strong> ${selectedCampaignMetrics.cost_per_purchase}
+                            <strong style={{ color: '#155724' }}>Cost per Purchase:</strong> <span style={{ color: '#155724' }}>{renderValue(selectedCampaignMetrics.cost_per_purchase)}</span>
+                          </div>
+                        )}
+                        {selectedCampaignMetrics.conversion_values && (
+                          <div style={{ padding: '15px', backgroundColor: '#e8f5e8', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
+                            <strong style={{ color: '#155724' }}>Conversion Values:</strong> <span style={{ color: '#155724' }}>{formatActionData(selectedCampaignMetrics.conversion_values)}</span>
+                          </div>
+                        )}
+                        {selectedCampaignMetrics.cost_per_action_type && (
+                          <div style={{ padding: '15px', backgroundColor: '#e8f5e8', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
+                            <strong style={{ color: '#155724' }}>Cost per Action Type:</strong> <span style={{ color: '#155724' }}>{formatActionData(selectedCampaignMetrics.cost_per_action_type)}</span>
                           </div>
                         )}
                       </div>
@@ -416,27 +874,27 @@ export default function HomePage() {
                       }}>
                         {selectedCampaignMetrics.actions && (
                           <div style={{ padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
-                            <strong style={{ color: '#856404' }}>Actions:</strong> {JSON.stringify(selectedCampaignMetrics.actions)}
+                            <strong style={{ color: '#856404' }}>Actions:</strong> <span style={{ color: '#856404' }}>{formatActionData(selectedCampaignMetrics.actions)}</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.action_values && (
                           <div style={{ padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
-                            <strong style={{ color: '#856404' }}>Action Values:</strong> {JSON.stringify(selectedCampaignMetrics.action_values)}
+                            <strong style={{ color: '#856404' }}>Action Values:</strong> <span style={{ color: '#856404' }}>{formatActionData(selectedCampaignMetrics.action_values)}</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.post_reactions && (
                           <div style={{ padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
-                            <strong style={{ color: '#856404' }}>Post Reactions:</strong> {selectedCampaignMetrics.post_reactions}
+                            <strong style={{ color: '#856404' }}>Post Reactions:</strong> <span style={{ color: '#856404' }}>{renderValue(selectedCampaignMetrics.post_reactions)}</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.post_comments && (
                           <div style={{ padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
-                            <strong style={{ color: '#856404' }}>Post Comments:</strong> {selectedCampaignMetrics.post_comments}
+                            <strong style={{ color: '#856404' }}>Post Comments:</strong> <span style={{ color: '#856404' }}>{renderValue(selectedCampaignMetrics.post_comments)}</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.post_shares && (
                           <div style={{ padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
-                            <strong style={{ color: '#856404' }}>Post Shares:</strong> {selectedCampaignMetrics.post_shares}
+                            <strong style={{ color: '#856404' }}>Post Shares:</strong> <span style={{ color: '#856404' }}>{renderValue(selectedCampaignMetrics.post_shares)}</span>
                           </div>
                         )}
                       </div>
@@ -456,32 +914,32 @@ export default function HomePage() {
                       }}>
                         {selectedCampaignMetrics.outbound_clicks && (
                           <div style={{ padding: '15px', backgroundColor: '#d1ecf1', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
-                            <strong style={{ color: '#0c5460' }}>Outbound Clicks:</strong> {selectedCampaignMetrics.outbound_clicks}
+                            <strong style={{ color: '#0c5460' }}>Outbound Clicks:</strong> <span style={{ color: '#0c5460' }}>{formatActionData(selectedCampaignMetrics.outbound_clicks)}</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.unique_clicks && (
                           <div style={{ padding: '15px', backgroundColor: '#d1ecf1', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
-                            <strong style={{ color: '#0c5460' }}>Unique Clicks:</strong> {selectedCampaignMetrics.unique_clicks}
+                            <strong style={{ color: '#0c5460' }}>Unique Clicks:</strong> <span style={{ color: '#0c5460' }}>{renderValue(selectedCampaignMetrics.unique_clicks)}</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.outbound_clicks_ctr && (
                           <div style={{ padding: '15px', backgroundColor: '#d1ecf1', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
-                            <strong style={{ color: '#0c5460' }}>Outbound CTR:</strong> {selectedCampaignMetrics.outbound_clicks_ctr}%
+                            <strong style={{ color: '#0c5460' }}>Outbound CTR:</strong> <span style={{ color: '#0c5460' }}>{formatActionData(selectedCampaignMetrics.outbound_clicks_ctr)}%</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.unique_ctr && (
                           <div style={{ padding: '15px', backgroundColor: '#d1ecf1', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
-                            <strong style={{ color: '#0c5460' }}>Unique CTR:</strong> {selectedCampaignMetrics.unique_ctr}%
+                            <strong style={{ color: '#0c5460' }}>Unique CTR:</strong> <span style={{ color: '#0c5460' }}>{renderValue(selectedCampaignMetrics.unique_ctr)}%</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.unique_outbound_clicks && (
                           <div style={{ padding: '15px', backgroundColor: '#d1ecf1', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
-                            <strong style={{ color: '#0c5460' }}>Unique Outbound Clicks:</strong> {selectedCampaignMetrics.unique_outbound_clicks}
+                            <strong style={{ color: '#0c5460' }}>Unique Outbound Clicks:</strong> <span style={{ color: '#0c5460' }}>{formatActionData(selectedCampaignMetrics.unique_outbound_clicks)}</span>
                           </div>
                         )}
                         {selectedCampaignMetrics.unique_outbound_clicks_ctr && (
                           <div style={{ padding: '15px', backgroundColor: '#d1ecf1', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
-                            <strong style={{ color: '#0c5460' }}>Unique Outbound CTR:</strong> {selectedCampaignMetrics.unique_outbound_clicks_ctr}%
+                            <strong style={{ color: '#0c5460' }}>Unique Outbound CTR:</strong> <span style={{ color: '#0c5460' }}>{formatActionData(selectedCampaignMetrics.unique_outbound_clicks_ctr)}%</span>
                           </div>
                         )}
                       </div>
@@ -499,8 +957,8 @@ export default function HomePage() {
                       borderRadius: '8px',
                       borderLeft: '4px solid #1877F2'
                     }}>
-                      <strong>Start:</strong> {selectedCampaignMetrics.date_start}<br/>
-                      <strong>End:</strong> {selectedCampaignMetrics.date_stop}
+                      <strong style={{ color: '#0d47a1' }}>Start:</strong> <span style={{ color: '#0d47a1' }}>{selectedCampaignMetrics.date_start}</span><br/>
+                      <strong style={{ color: '#0d47a1' }}>End:</strong> <span style={{ color: '#0d47a1' }}>{selectedCampaignMetrics.date_stop}</span>
                     </div>
                   </div>
 
@@ -641,7 +1099,7 @@ export default function HomePage() {
 
           {/* Campaigns Section */}
           {selectedAccount && (
-            <div style={{ marginBottom: '30px' }}>
+            <div style={{ marginBottom: '30px', position: 'relative' }}>
               <h2 style={{ 
                 fontSize: '24px', 
                 fontWeight: '600', 
@@ -654,7 +1112,25 @@ export default function HomePage() {
               {loading.campaigns ? (
                 <LoadingSpinner text="Loading campaigns..." />
               ) : campaigns.length > 0 ? (
-                <div style={{ 
+                <div style={{ position: 'relative' }}>
+                  {loading.campaignDetails && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 10,
+                      borderRadius: '12px'
+                    }}>
+                      <LoadingSpinner size="large" text="Loading campaign data..." />
+                    </div>
+                  )}
+                  <div style={{ 
                   display: 'grid', 
                   gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
                   gap: '20px' 
@@ -668,10 +1144,11 @@ export default function HomePage() {
                         backgroundColor: 'white',
                         borderRadius: '12px',
                         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                        cursor: 'pointer',
+                        cursor: loading.campaignDetails ? 'not-allowed' : 'pointer',
                         transition: 'all 0.3s ease-in-out',
                         border: '1px solid #e9ecef',
-                        opacity: campaign.status === 'PAUSED' ? 0.7 : 1
+                        opacity: campaign.status === 'PAUSED' ? 0.7 : loading.campaignDetails ? 0.5 : 1,
+                        position: 'relative'
                       }}
                       onMouseOver={(e) => {
                         e.target.style.transform = 'translateY(-1px)';
@@ -717,6 +1194,7 @@ export default function HomePage() {
                       </div>
                     </div>
                   ))}
+                  </div>
                 </div>
               ) : (
                 <div style={{
@@ -733,6 +1211,7 @@ export default function HomePage() {
           )}
         </>
       )}
+
     </div>
   );
 }
