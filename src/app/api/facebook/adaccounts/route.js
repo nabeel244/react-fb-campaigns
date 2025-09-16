@@ -13,7 +13,7 @@ export async function GET(req) {
 
     // Get the user's Ad Accounts
     const adAccountsResponse = await axios.get(
-      `https://graph.facebook.com/v19.0/me/adaccounts?fields=id,name,account_status&access_token=${accessToken}`
+      `https://graph.facebook.com/v23.0/me/adaccounts?fields=id,name,account_status&access_token=${accessToken}`
     );
 
     return new Response(JSON.stringify(adAccountsResponse.data), { status: 200 });
