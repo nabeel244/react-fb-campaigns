@@ -1,6 +1,6 @@
 "use client";
 import { useSession, signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 
 export default function HomePage() {
@@ -24,13 +24,152 @@ export default function HomePage() {
   // Error state
   const [error, setError] = useState("");
   
+  // Refs
+  const textareaRef = useRef(null);
+
+
+  
   // Chatbot states
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [userInput, setUserInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(null);
+
+  // Streaming send message function
+  const sendMessage = async () => {
+    if (!textareaRef.current) return;
+    
+    const message = textareaRef.current.value.trim();
+    if (!message) return;
+
+    // Add user message
+    const newMessage = {
+      id: Date.now(),
+      type: 'user',
+      message: message,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, newMessage]);
+    
+    // Clear input
+    textareaRef.current.value = '';
+    setIsTyping(true);
+
+    // Add initial bot message for streaming
+    const botMessageId = Date.now() + 1;
+    const initialBotMessage = {
+      id: botMessageId,
+      type: 'bot',
+      message: '',
+      timestamp: new Date(),
+      isStreaming: true
+    };
+    setMessages(prev => [...prev, initialBotMessage]);
+
+    try {
+      // Call Python chatbot streaming API
+      const chatPayload = {
+        message: message,
+        user_id: "anonymous",
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('Sending message to Python streaming API:', chatPayload);
+
+      const response = await fetch('http://localhost:8000/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(chatPayload)
+      });
+
+      if (response.ok) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulatedText = '';
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  
+                  if (data.text) {
+                    accumulatedText += data.text;
+                    
+                    // Update the bot message with accumulated text
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === botMessageId 
+                          ? { ...msg, message: accumulatedText }
+                          : msg
+                      )
+                    );
+                  }
+                  
+                  if (data.done) {
+                    // Mark streaming as complete
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === botMessageId 
+                          ? { ...msg, isStreaming: false }
+                          : msg
+                      )
+                    );
+                    break;
+                  }
+                } catch (parseError) {
+                  console.error('Error parsing SSE data:', parseError);
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      } else {
+        console.error('Failed to get response from Python API:', response.statusText);
+        const errorResponse = {
+          id: botMessageId,
+          type: 'bot',
+          message: 'Sorry, I\'m having trouble connecting to the analysis system. Please try again.',
+          timestamp: new Date(),
+          isStreaming: false
+        };
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === botMessageId ? errorResponse : msg
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error sending message to Python API:', error);
+      const errorResponse = {
+        id: botMessageId,
+        type: 'bot',
+        message: 'Sorry, I encountered an error. Please check if the Python API is running and try again.',
+        timestamp: new Date(),
+        isStreaming: false
+      };
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === botMessageId ? errorResponse : msg
+        )
+      );
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -43,6 +182,20 @@ export default function HomePage() {
     }
   }, [status, router]);
 
+  // Simple focus when chat opens
+  useEffect(() => {
+    if (isChatOpen && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [isChatOpen]);
+
+  // Keep textarea focused when typing (removed to prevent cursor jumping)
+  // useEffect(() => {
+  //   if (isChatOpen && textareaRef.current && document.activeElement !== textareaRef.current) {
+  //     textareaRef.current.focus();
+  //   }
+  // }, [userInput, isChatOpen]);
+
   const fetchAdAccounts = async () => {
     try {
       setLoading(prev => ({ ...prev, adAccounts: true }));
@@ -51,13 +204,13 @@ export default function HomePage() {
       const response = await fetch("/api/facebook/adaccounts");
       const data = await response.json();
       
-      if (data.error) {
-        setError(data.error);
-      } else {
-        setAdAccounts(data?.data || []);
-      }
+          if (data.error) {
+            setError(data.error);
+          } else {
+            setAdAccounts(data?.data || []);
+          }
     } catch (err) {
-      setError("Error fetching ad accounts");
+          setError("Error fetching ad accounts");
       console.error("Error fetching ad accounts:", err);
     } finally {
       setLoading(prev => ({ ...prev, adAccounts: false }));
@@ -66,20 +219,20 @@ export default function HomePage() {
 
   const handleAccountClick = async (adAccountId) => {
     try {
-      setSelectedAccount(adAccountId);
+    setSelectedAccount(adAccountId);
       setLoading(prev => ({ ...prev, campaigns: true }));
       setError("");
       
       const response = await fetch(`/api/facebook/campaigns?adAccountId=${adAccountId}`);
       const data = await response.json();
       
-      if (data.error) {
-        setError(data.error);
-      } else {
-        setCampaigns(data?.data || []);
-      }
+        if (data.error) {
+          setError(data.error);
+        } else {
+          setCampaigns(data?.data || []);
+        }
     } catch (err) {
-      setError("Error fetching campaigns");
+        setError("Error fetching campaigns");
       console.error("Error fetching campaigns:", err);
     } finally {
       setLoading(prev => ({ ...prev, campaigns: false }));
@@ -94,9 +247,9 @@ export default function HomePage() {
       const response = await fetch(`/api/facebook/singleCampaing?adAccountId=${selectedAccount}&campaignId=${campaign.id}`);
       const data = await response.json();
       
-      if (data.error) {
-        setError(data.error);
-      } else {
+        if (data.error) {
+          setError(data.error);
+        } else {
         // Console log the complete campaign data object for bot integration
         console.log('=== COMPLETE CAMPAIGN DATA OBJECT FOR BOT ===');
         console.log('Campaign ID:', campaign.id);
@@ -189,7 +342,7 @@ export default function HomePage() {
         setIsChatOpen(true);
       }
     } catch (err) {
-      setError("Error fetching campaign insights");
+        setError("Error fetching campaign insights");
       console.error("Error fetching campaign insights:", err);
     } finally {
       setLoading(prev => ({ ...prev, campaignDetails: false }));
@@ -224,45 +377,7 @@ export default function HomePage() {
     setIsChatOpen(true);
   };
 
-  const sendMessage = async () => {
-    if (!userInput.trim()) return;
 
-    const newMessage = {
-      id: messages.length + 1,
-      type: 'user',
-      message: userInput,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-    setUserInput("");
-    setIsTyping(true);
-
-    try {
-      // TODO: Replace with actual API call to addrunner-chatbot-python
-      // For now, simulate a response
-      setTimeout(() => {
-        const botResponse = {
-          id: messages.length + 2,
-          type: 'bot',
-          message: `I received your message: "${userInput}". This is a placeholder response. The actual integration with your Python chatbot API will be implemented next.`,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, botResponse]);
-        setIsTyping(false);
-      }, 1500);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setIsTyping(false);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
 
   // Helper function to safely render values
   const renderValue = (value) => {
@@ -330,6 +445,25 @@ export default function HomePage() {
   };
 
   // ChatGPT-style Components
+  // Simple markdown renderer for basic formatting
+  const renderMarkdown = (text) => {
+    if (!text) return '';
+    
+    return text
+      // Headers
+      .replace(/^### (.*$)/gim, '<h3 style="font-size: 16px; font-weight: bold; margin: 8px 0 4px 0; color: #1a73e8;">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 style="font-size: 18px; font-weight: bold; margin: 12px 0 6px 0; color: #1a73e8;">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 style="font-size: 20px; font-weight: bold; margin: 16px 0 8px 0; color: #1a73e8;">$1</h1>')
+      // Bold text
+      .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: bold;">$1</strong>')
+      // Italic text
+      .replace(/\*(.*?)\*/g, '<em style="font-style: italic;">$1</em>')
+      // Line breaks
+      .replace(/\n/g, '<br>')
+      // Bullet points
+      .replace(/^- (.*$)/gim, '<div style="margin: 4px 0; padding-left: 16px;">• $1</div>');
+  };
+
   const ChatMessage = ({ message }) => {
     const isUser = message.type === 'user';
 
@@ -341,7 +475,7 @@ export default function HomePage() {
         padding: '0 20px'
       }}>
         <div style={{
-          maxWidth: '70%',
+          maxWidth: '80%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: isUser ? 'flex-end' : 'flex-start'
@@ -356,7 +490,15 @@ export default function HomePage() {
             wordWrap: 'break-word',
             whiteSpace: 'pre-wrap'
           }}>
-            {message.message}
+            {isUser ? (
+              message.message
+            ) : (
+              <div 
+                dangerouslySetInnerHTML={{ 
+                  __html: renderMarkdown(message.message) + (message.isStreaming ? '<span style="opacity: 0.7; animation: blink 1s infinite;">▊</span>' : '')
+                }} 
+              />
+            )}
           </div>
           <div style={{
             fontSize: '11px',
@@ -606,38 +748,42 @@ export default function HomePage() {
               margin: '0 auto'
             }}>
               <div style={{ flex: 1, position: 'relative' }}>
-                <textarea
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                <input
+                  type="text"
+                  ref={textareaRef}
+                  defaultValue=""
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
                   placeholder="Ask me about your campaign data..."
                   style={{
                     width: '100%',
-                    minHeight: '44px',
-                    maxHeight: '120px',
+                    height: '44px',
                     padding: '12px 16px',
                     border: '1px solid #ddd',
                     borderRadius: '22px',
                     fontSize: '14px',
-                    resize: 'none',
                     outline: 'none',
                     fontFamily: 'inherit',
-                    lineHeight: '1.4',
-                    backgroundColor: '#f8f9fa'
+                    backgroundColor: '#f8f9fa',
+                    color: '#000000'
                   }}
                 />
               </div>
               <button
                 onClick={sendMessage}
-                disabled={!userInput.trim() || isTyping}
+                disabled={isTyping}
                 style={{
                   width: '44px',
                   height: '44px',
-                  backgroundColor: userInput.trim() && !isTyping ? '#007bff' : '#ccc',
+                  backgroundColor: !isTyping ? '#007bff' : '#ccc',
                   color: 'white',
                   border: 'none',
                   borderRadius: '50%',
-                  cursor: userInput.trim() && !isTyping ? 'pointer' : 'not-allowed',
+                  cursor: !isTyping ? 'pointer' : 'not-allowed',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -679,24 +825,24 @@ export default function HomePage() {
             }}>
               Facebook Ad Accounts
             </h1>
-            <button
-              onClick={() => signOut()}
-              style={{
-                backgroundColor: '#e53e3e',
-                color: 'white',
-                padding: '12px 18px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '600',
+          <button
+            onClick={() => signOut()}
+            style={{
+              backgroundColor: '#e53e3e',
+              color: 'white',
+              padding: '12px 18px',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: '600',
                 transition: 'background-color 0.2s ease'
-              }}
+            }}
               onMouseOver={(e) => e.target.style.backgroundColor = '#c53030'}
               onMouseOut={(e) => e.target.style.backgroundColor = '#e53e3e'}
-            >
-              Logout
-            </button>
-          </div>
+          >
+            Logout
+          </button>
+              </div>
 
           {/* Campaign Modal */}
           {isModalOpen && (
@@ -792,8 +938,8 @@ export default function HomePage() {
                       }}>
                         {selectedCampaignMetrics.objective}
                       </span>
-                    </div>
                   </div>
+              </div>
 
                   {/* Key Metrics Grid */}
                   <div style={{ 
@@ -1029,19 +1175,19 @@ export default function HomePage() {
                     }}>
                       <strong style={{ color: '#0d47a1' }}>Start:</strong> <span style={{ color: '#0d47a1' }}>{selectedCampaignMetrics.date_start}</span><br/>
                       <strong style={{ color: '#0d47a1' }}>End:</strong> <span style={{ color: '#0d47a1' }}>{selectedCampaignMetrics.date_stop}</span>
-                    </div>
+                  </div>
                   </div>
 
                   {/* Action Buttons */}
                   <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end' }}>
                     <button
                       onClick={closeModal}
-                      style={{
+                  style={{
                         padding: '12px 24px',
                         backgroundColor: '#6c757d',
                         color: 'white',
                         border: 'none',
-                        borderRadius: '8px',
+                    borderRadius: '8px',
                         cursor: 'pointer',
                         fontWeight: '600',
                         fontSize: '14px'
@@ -1049,25 +1195,25 @@ export default function HomePage() {
                     >
                       Close
                     </button>
-                    <button
+                <button
                       onClick={() => {
                         // Future: Export or analyze functionality
                         console.log('Export campaign data');
                       }}
-                      style={{
+                  style={{
                         padding: '12px 24px',
                         backgroundColor: '#1877F2',
-                        color: 'white',
-                        border: 'none',
+                    color: 'white',
+                    border: 'none',
                         borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontWeight: '600',
+                    cursor: 'pointer',
+                    fontWeight: '600',
                         fontSize: '14px'
-                      }}
-                    >
+                  }}
+                >
                       Export Data
-                    </button>
-                  </div>
+                </button>
+              </div>
                 </div>
               ) : null}
             </div>
@@ -1205,15 +1351,15 @@ export default function HomePage() {
                   gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
                   gap: '20px' 
                 }}>
-                  {campaigns.map((campaign) => (
+                {campaigns.map((campaign) => (
                     <div
-                      key={campaign.id}
+                    key={campaign.id}
                       onClick={() => handleCampaignClick(campaign)}
-                      style={{
+                    style={{
                         padding: '20px',
                         backgroundColor: 'white',
                         borderRadius: '12px',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
                         cursor: loading.campaignDetails ? 'not-allowed' : 'pointer',
                         transition: 'all 0.3s ease-in-out',
                         border: '1px solid #e9ecef',
@@ -1239,8 +1385,8 @@ export default function HomePage() {
                         }}>
                           {campaign.name}
                         </span>
-                        <span
-                          style={{
+                      <span
+                        style={{
                             fontSize: '12px',
                             fontWeight: '600',
                             color: campaign.status === 'ACTIVE' ? '#28a745' : '#dc3545',
@@ -1251,8 +1397,8 @@ export default function HomePage() {
                           }}
                         >
                           {campaign.status}
-                        </span>
-                      </div>
+                      </span>
+                    </div>
                       <div style={{ 
                         fontSize: '14px', 
                         color: '#666',
@@ -1275,8 +1421,8 @@ export default function HomePage() {
                   color: '#666'
                 }}>
                   <p>No campaigns found for this ad account.</p>
-                </div>
-              )}
+            </div>
+          )}
             </div>
           )}
         </>

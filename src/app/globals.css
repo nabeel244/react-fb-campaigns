@@ -96,3 +96,8 @@ a {
     box-shadow: 0 4px 12px rgba(0,123,255,0.3);
   }
 }
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
