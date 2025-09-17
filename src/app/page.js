@@ -107,13 +107,83 @@ export default function HomePage() {
         setSelectedCampaignMetrics(data);
         setIsModalOpen(true);
         
+        // Send campaign data to Python API
+        try {
+          const pythonApiPayload = {
+            clicks: data.clicks?.toString() || "0",
+            impressions: data.impressions?.toString() || "0",
+            spend: data.spend?.toString() || "0",
+            cpc: data.cpc?.toString() || "0",
+            cpm: data.cpm?.toString() || "0",
+            campaign_name: data.campaign_name || "",
+            conversion_rate_ranking: data.conversion_rate_ranking?.toString() || "0",
+            cost_per_action_type: data.cost_per_action_type || [],
+            cost_per_unique_click: data.cost_per_unique_click?.toString() || "0",
+            cost_per_unique_outbound_click: data.cost_per_unique_outbound_click || [],
+            ctr: data.ctr?.toString() || "0",
+            cpp: data.cpp?.toString() || "0",
+            objective: data.objective || "",
+            social_spend: data.social_spend?.toString() || "0",
+            quality_ranking: data.quality_ranking?.toString() || "0",
+            reach: data.reach?.toString() || "0",
+            frequency: data.frequency?.toString() || "0",
+            date_start: data.date_start || "",
+            date_stop: data.date_stop || "",
+            ad_sets: data.ad_sets || [],
+            creative_data: data.creative_data || {},
+            strategy_data: data.strategy_data || {},
+            daily_insights: data.daily_insights || [],
+            platform_data: data.platform_data || [],
+            action_data: data.action_data || [],
+            demographic_data: data.demographic_data || [],
+            // Additional fields from our API
+            conversions: data.conversions || [],
+            actions: data.actions || [],
+            action_values: data.action_values || [],
+            conversion_values: data.conversion_values || [],
+            cost_per_conversion: data.cost_per_conversion || [],
+            cost_per_purchase: data.cost_per_purchase?.toString() || "0",
+            website_purchase_roas: data.website_purchase_roas?.toString() || "0",
+            outbound_clicks: data.outbound_clicks || [],
+            outbound_clicks_ctr: data.outbound_clicks_ctr || [],
+            unique_clicks: data.unique_clicks?.toString() || "0",
+            unique_ctr: data.unique_ctr?.toString() || "0",
+            unique_outbound_clicks: data.unique_outbound_clicks || [],
+            unique_outbound_clicks_ctr: data.unique_outbound_clicks_ctr || [],
+            post_reactions: data.post_reactions?.toString() || "0",
+            post_comments: data.post_comments?.toString() || "0",
+            post_shares: data.post_shares?.toString() || "0",
+            ad_name: data.ad_name || "",
+            adset_name: data.adset_name || ""
+          };
+
+          console.log('Sending data to Python API:', pythonApiPayload);
+
+          const pythonResponse = await fetch('http://localhost:8000/api/data/upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(pythonApiPayload)
+          });
+
+          if (pythonResponse.ok) {
+            const pythonData = await pythonResponse.json();
+            console.log('Campaign data successfully sent to Python API:', pythonData);
+          } else {
+            console.error('Failed to send data to Python API:', pythonResponse.statusText);
+          }
+        } catch (pythonError) {
+          console.error('Error sending data to Python API:', pythonError);
+        }
+        
         // Open chatbot and create new chat session
         const newChatId = Date.now().toString();
         setCurrentChatId(newChatId);
         setMessages([{
           id: 1,
           type: 'bot',
-          message: `Hello! I'm your Facebook Ads AI assistant. I can help you analyze your campaign "${data.campaign_name}" data, provide insights, and answer questions about your advertising performance. How can I help you today?`,
+          message: `Hello! I'm your Facebook Ads AI assistant. I've successfully uploaded your campaign "${data.campaign_name}" data to our analysis system. I can help you analyze the data, provide insights, and answer questions about your advertising performance. How can I help you today?`,
           timestamp: new Date()
         }]);
         setIsChatOpen(true);
