@@ -2,9 +2,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
+import ReactMarkdown from "react-markdown";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -38,44 +36,7 @@ export default function HomePage() {
   const [isTyping, setIsTyping] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(null);
-  
-  // Message ID counter to ensure unique IDs
-  const [messageIdCounter, setMessageIdCounter] = useState(0);
 
-  // Function to clean and format streaming text
-  const cleanStreamingText = (text) => {
-    if (!text) return '';
-    
-    // Remove duplicate content patterns and format for better readability
-    let cleaned = text
-      // Remove duplicate headers and repeated phrases
-      .replace(/(Here is your complete campaign data:)/g, '')
-      .replace(/(Campaign Name:)/g, '**Campaign Name:**')
-      .replace(/(Objective:)/g, '**Objective:**')
-      .replace(/(Date Range:)/g, '**Date Range:**')
-      .replace(/(Total Spend:)/g, '**Total Spend:**')
-      .replace(/(Total Clicks:)/g, '**Total Clicks:**')
-      .replace(/(Total Impressions:)/g, '**Total Impressions:**')
-      .replace(/(Total Reach:)/g, '**Total Reach:**')
-      .replace(/(Frequency:)/g, '**Frequency:**')
-      .replace(/(Average CTR:)/g, '**Average CTR:**')
-      .replace(/(Average CPC:)/g, '**Average CPC:**')
-      .replace(/(Average CPM:)/g, '**Average CPM:**')
-      .replace(/(Reach Efficiency:)/g, '**Reach Efficiency:**')
-      .replace(/(Conversion Rate:)/g, '**Conversion Rate:**')
-      .replace(/(Cost per Conversion:)/g, '**Cost per Conversion:**')
-      // Clean up extra spaces and line breaks
-      .replace(/\s+/g, ' ')
-      .replace(/\n\s*\n/g, '\n\n')
-      .trim();
-    
-    // Add proper markdown formatting
-    if (cleaned.includes('**Campaign Name:**')) {
-      cleaned = `# Campaign Analysis\n\n${cleaned}`;
-    }
-    
-    return cleaned;
-  };
 
   // Streaming send message function
   const sendMessage = async () => {
@@ -84,16 +45,9 @@ export default function HomePage() {
     const message = textareaRef.current.value.trim();
     if (!message) return;
 
-    // Generate unique IDs
-    const userMessageId = messageIdCounter + 1;
-    const botMessageId = messageIdCounter + 2;
-    
-    // Update counter
-    setMessageIdCounter(prev => prev + 3);
-
     // Add user message
     const newMessage = {
-      id: userMessageId,
+      id: Date.now(),
       type: 'user',
       message: message,
       timestamp: new Date()
@@ -103,6 +57,9 @@ export default function HomePage() {
     // Clear input
     textareaRef.current.value = '';
     setIsTyping(true);
+
+    // Add initial bot message for streaming
+    const botMessageId = Date.now() + 1;
     const initialBotMessage = {
       id: botMessageId,
       type: 'bot',
@@ -131,9 +88,8 @@ export default function HomePage() {
       });
 
       if (response.ok) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let accumulatedText = '';
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
 
         try {
           while (true) {
@@ -150,14 +106,11 @@ export default function HomePage() {
                   const data = JSON.parse(line.slice(6));
                   
                   if (data.text) {
-                    // Clean and format the streaming text
-                    const cleanedText = cleanStreamingText(data.text);
-                    
-                    // Update the bot message with cleaned text
+                    // Replace entire message content like Python chatbot
                     setMessages(prev => 
                       prev.map(msg => 
                         msg.id === botMessageId 
-                          ? { ...msg, message: cleanedText }
+                          ? { ...msg, message: data.text, isStreaming: true }
                           : msg
                       )
                     );
@@ -235,6 +188,9 @@ export default function HomePage() {
     }
   }, [isChatOpen]);
 
+ 
+
+
   // Keep textarea focused when typing (removed to prevent cursor jumping)
   // useEffect(() => {
   //   if (isChatOpen && textareaRef.current && document.activeElement !== textareaRef.current) {
@@ -292,7 +248,7 @@ export default function HomePage() {
       
       const response = await fetch(`/api/facebook/singleCampaing?adAccountId=${selectedAccount}&campaignId=${campaign.id}`);
       const data = await response.json();
-      
+     
         if (data.error) {
           setError(data.error);
         } else {
@@ -379,8 +335,12 @@ export default function HomePage() {
         // Open chatbot and create new chat session
         const newChatId = Date.now().toString();
         setCurrentChatId(newChatId);
-        setMessages([]); // Start with empty messages
-        setMessageIdCounter(0); // Reset counter
+        setMessages([{
+          id: 1,
+          type: 'bot',
+          message: data.campaign_name,
+          timestamp: new Date()
+        }]);
         setIsChatOpen(true);
       }
     } catch (err) {
@@ -405,14 +365,17 @@ export default function HomePage() {
     setIsChatOpen(false);
     setMessages([]);
     setCurrentChatId(null);
-    setMessageIdCounter(0); // Reset counter
   };
 
   const startNewChat = () => {
     const newChatId = Date.now().toString();
     setCurrentChatId(newChatId);
-    setMessages([]); // Start with empty messages
-    setMessageIdCounter(0); // Reset counter
+    setMessages([{
+      id: 1,
+      type: 'bot',
+      message: 'Hello! I\'m your Facebook Ads AI assistant. I can help you analyze your campaign data, provide insights, and answer questions about your advertising performance. How can I help you today?',
+      timestamp: new Date()
+    }]);
     setIsChatOpen(true);
   };
 
@@ -484,78 +447,205 @@ export default function HomePage() {
   };
 
   // ChatGPT-style Components
-  // Simple markdown renderer for basic formatting
-  const renderMarkdown = (text) => {
+
+  // Convert inline tables to HTML like Python chatbot
+  const convertInlineTablesDirectly = (content) => {
+    try {
+      console.log('Converting inline tables directly to HTML...');
+      
+      let result = content;
+      
+      // Pattern 1: Platform Breakdown tables
+      result = result.replace(/(Platform Breakdown.*?)(?=\n\s*[A-Z]|\n\n|$)/gs, (match) => {
+        return generateHTMLTable(match, 'Platform Breakdown', ['Platform', 'Spend', 'Clicks', 'Impressions', 'CTR', 'CPC']);
+      });
+      
+      // Pattern 2: Cost Per Action Types
+      result = result.replace(/(Cost Per Action Types.*?)(?=\n\s*[A-Z]|\n\n|$)/gs, (match) => {
+        return generateHTMLTable(match, 'Cost Per Action Types', ['Action Type', 'Cost']);
+      });
+      
+      // Pattern 3: Daily Insights
+      result = result.replace(/(Daily Insights.*?)(?=\n\s*[A-Z]|\n\n|$)/gs, (match) => {
+        return generateHTMLTable(match, 'Daily Insights', ['Date', 'Impressions', 'Clicks', 'Spend', 'Actions']);
+      });
+      
+      // Pattern 4: Actions Overall
+      result = result.replace(/(Actions Overall.*?)(?=\n\s*[A-Z]|\n\n|$)/gs, (match) => {
+        return generateHTMLTable(match, 'Actions Overall', ['Action Type', 'Count']);
+      });
+      
+      // Pattern 5: Demographics
+      result = result.replace(/(Demographics.*?)(?=\n\s*[A-Z]|\n\n|$)/gs, (match) => {
+        return generateHTMLTable(match, 'Demographics', ['Segment', 'Impressions', 'Clicks', 'Spend']);
+      });
+      
+      return result;
+    } catch (error) {
+      console.error('Error converting inline tables directly:', error);
+      return content;
+    }
+  };
+
+  // Generate HTML table from text data
+  const generateHTMLTable = (tableText, title, expectedHeaders) => {
+    try {
+      console.log(`Generating HTML table for: ${title}`);
+      
+      // Extract all pipe-separated values
+      let parts = tableText.split('|').map(p => p.trim()).filter(p => p !== '' && p !== title);
+      
+      if (parts.length < expectedHeaders.length * 2) {
+        return tableText; // Not enough data
+      }
+      
+      // Build HTML
+      let html = `<h3 style="color: #1e40af; font-size: 18px; margin: 1em 0 0.5em 0; font-weight: 600;">${title}</h3>\n`;
+      html += `<div style="overflow-x: auto; margin: 1em 0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">\n`;
+      html += `<table style="border-collapse: collapse; width: 100%; min-width: 600px; background: white; font-size: 0.9rem;">\n`;
+      
+      // Header row
+      html += '<thead><tr>';
+      for (let header of expectedHeaders) {
+        html += `<th style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); font-weight: 600; color: #2d3748; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #e2e8f0; padding: 12px 16px; text-align: left; vertical-align: top; border-bottom: 2px solid #cbd5e0;">${header}</th>`;
+      }
+      html += '</tr></thead>\n<tbody>\n';
+      
+      // Data rows
+      let currentRow = [];
+      for (let part of parts) {
+        // Skip parts that look like headers
+        if (expectedHeaders.some(h => part.toLowerCase().includes(h.toLowerCase()))) {
+          continue;
+        }
+        
+        currentRow.push(part);
+        
+        if (currentRow.length === expectedHeaders.length) {
+          html += '<tr>';
+          for (let cell of currentRow) {
+            html += `<td style="border: 1px solid #e2e8f0; padding: 12px 16px; text-align: left; vertical-align: top; background: white; transition: background-color 0.2s ease;">${cell}</td>`;
+          }
+          html += '</tr>\n';
+          currentRow = [];
+        }
+      }
+      
+      html += '</tbody>\n</table>\n</div>\n\n';
+      
+      return html;
+      
+    } catch (error) {
+      console.error('Error generating HTML table:', error);
+      return tableText;
+    }
+  };
+
+  // Clean and format streaming text like Python chatbot
+  const cleanStreamingText = (text) => {
     if (!text) return '';
     
-    return text
-      // Headers
-      .replace(/^### (.*$)/gim, '<h3 style="font-size: 16px; font-weight: bold; margin: 8px 0 4px 0; color: #1a73e8;">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 style="font-size: 18px; font-weight: bold; margin: 12px 0 6px 0; color: #1a73e8;">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 style="font-size: 20px; font-weight: bold; margin: 16px 0 8px 0; color: #1a73e8;">$1</h1>')
-      // Bold text
-      .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: bold;">$1</strong>')
-      // Italic text
-      .replace(/\*(.*?)\*/g, '<em style="font-style: italic;">$1</em>')
-      // Line breaks
-      .replace(/\n/g, '<br>')
-      // Bullet points
-      .replace(/^- (.*$)/gim, '<div style="margin: 4px 0; padding-left: 16px;">• $1</div>');
+    // Step 1: Convert inline tables to HTML
+    let processedContent = convertInlineTablesDirectly(text);
+    
+    // Step 2: Clean up the remaining text
+    let cleaned = processedContent
+      // Remove duplicate patterns
+      .replace(/(HereHere is the complete|Here is the complete|Here is your complete campaign data:)/g, '')
+      .replace(/(Campaign Overview|Campaign: \*\*\*|Campaign: \*\*\*\*)/g, '')
+      .replace(/\*\*\*\*/g, '') // Remove asterisks
+      .replace(/\*\*\*/g, '') // Remove triple asterisks
+      .replace(/\*\*/g, '') // Remove double asterisks
+      
+      // Add line breaks before headers
+      .replace(/([^#])##\s*/g, '$1\n\n## ')
+      .replace(/^##\s*/g, '## ')
+      
+      // Add line breaks before # headers
+      .replace(/([^#])#\s*([^#])/g, '$1\n\n# $2')
+      .replace(/^#\s*([^#])/g, '# $1')
+      
+      // Add line breaks after headers
+      .replace(/(#{1,6}\s+[^\n]+)/g, '$1\n')
+      
+      // Add spacing around bullet points
+      .replace(/([^-\n])-\s+/g, '$1\n- ')
+      
+      // Add line breaks for numbered lists
+      .replace(/(\d+\.)\s+/g, '\n$1 ')
+      
+      // Clean up extra spaces and normalize line breaks
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/^\n+/, '') // Remove leading newlines
+      .trim();
+    
+    return cleaned;
   };
 
   const ChatMessage = ({ message }) => {
+    const decodedText = message.message.replace(/\\u[\dA-F]{4}/gi, match =>
+        String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16))
+      );
+    
+    // Clean the text for better formatting
+    const cleanedText = cleanStreamingText(decodedText);
+    
     const isUser = message.type === 'user';
-
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: isUser ? 'flex-end' : 'flex-start',
-        marginBottom: '20px',
-        padding: '0 20px'
-      }}>
+    
+      return (
         <div style={{
-          maxWidth: '80%',
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: isUser ? 'flex-end' : 'flex-start'
+          justifyContent: isUser ? 'flex-end' : 'flex-start',
+          marginBottom: '20px',
+          padding: '0 20px'
         }}>
           <div style={{
-            padding: '12px 16px',
-            backgroundColor: isUser ? '#007bff' : '#f1f3f4',
-            color: isUser ? 'white' : '#333',
-            borderRadius: '12px',
-            fontSize: '14px',
-            lineHeight: '1.5',
-            wordWrap: 'break-word',
-            whiteSpace: 'pre-wrap'
+            maxWidth: '80%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: isUser ? 'flex-end' : 'flex-start'
           }}>
-            {isUser ? (
-              message.message
-            ) : (
-              <div className="chatbot-markdown">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                >
-                  {message.message || ''}
-                </ReactMarkdown>
-                {message.isStreaming && (
-                  <span style={{opacity: 0.7, animation: 'blink 1s infinite'}}>▊</span>
-                )}
-              </div>
-            )}
-          </div>
-          <div style={{
-            fontSize: '11px',
-            color: '#666',
-            marginTop: '4px',
-            padding: '0 4px'
-          }}>
-            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <div style={{
+              padding: '12px 16px',
+              backgroundColor: isUser ? '#007bff' : '#f1f3f4',
+              color: isUser ? 'white' : '#333',
+              borderRadius: '12px',
+              fontSize: '14px',
+              lineHeight: '1.5',
+              wordWrap: 'break-word',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {isUser ? (
+                decodedText // Display raw text for user
+              ) : (
+                <div>
+                   <div
+                     dangerouslySetInnerHTML={{ __html: cleanedText }}
+                   />
+                  {message.isStreaming && (
+                    <span style={{
+                      display: 'inline-block',
+                      width: '2px',
+                      height: '1em',
+                      background: '#1877f2',
+                      animation: 'blink 1s infinite',
+                      marginLeft: '2px'
+                    }}></span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div style={{
+              fontSize: '11px',
+              color: '#666',
+              marginTop: '4px',
+              padding: '0 4px'
+            }}>
+              {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
   };
 
   const TypingIndicator = () => (
@@ -773,36 +863,10 @@ export default function HomePage() {
             padding: '20px 0',
             backgroundColor: '#fafafa'
           }}>
-            {messages.length === 0 ? (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: '#666',
-                textAlign: 'center',
-                padding: '40px'
-              }}>
-                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🤖</div>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: '600' }}>
-                  Welcome to Facebook Ads AI Assistant
-                </h3>
-                <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
-                  I can help you analyze your campaign data, provide insights, and answer questions about your advertising performance.
-                </p>
-                <p style={{ margin: '10px 0 0 0', fontSize: '14px', color: '#999' }}>
-                  Start by asking me about your campaign data!
-                </p>
-              </div>
-            ) : (
-              <>
-                {messages.map((message) => (
-                  <ChatMessage key={message.id} message={message} />
-                ))}
-                {isTyping && <TypingIndicator />}
-              </>
-            )}
+            {messages.map((message) => (
+              <ChatMessage key={message.id} message={message} />
+            ))}
+            {isTyping && <TypingIndicator />}
           </div>
 
           {/* Input Area */}

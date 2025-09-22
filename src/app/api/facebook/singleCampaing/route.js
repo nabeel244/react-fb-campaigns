@@ -43,7 +43,7 @@ export async function GET(req) {
     console.log("Fetching ad sets...");
     let adSetData = [];
     try {
-      const adSetResponse = await axios.get(
+    const adSetResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/adsets?fields=name,targeting,optimization_goal,bid_amount,location,audience,age,gender,interests&access_token=${accessToken}`
       );
       adSetData = adSetResponse.data.data;
@@ -56,7 +56,7 @@ export async function GET(req) {
     console.log("Fetching strategy data...");
     let strategyData = {};
     try {
-      const strategyResponse = await axios.get(
+    const strategyResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}?fields=objective,last_budget_toggling_time,created_time,can_use_spend_cap,campaign_group_active_time,buying_type,issues_info,pacing_type,primary_attribution,promoted_object,smart_promotion_type,source_campaign,spend_cap,ad_studies&access_token=${accessToken}`
       );
       strategyData = strategyResponse.data;
@@ -70,7 +70,7 @@ export async function GET(req) {
     let adsData = [];
     let creativeData = null;
     try {
-      const adResponse = await axios.get(
+    const adResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/ads?fields=name,creative,objective&access_token=${accessToken}`
       );
       adsData = adResponse.data.data;
@@ -82,10 +82,10 @@ export async function GET(req) {
         console.log("Fetching creative data for ID:", creativeId);
         
         try {
-          const creativeResponse = await axios.get(
+  const creativeResponse = await axios.get(
             `https://graph.facebook.com/v23.0/${creativeId}?fields=body,title,name,object_type,product_data,url_tags&access_token=${accessToken}`
-          );
-          creativeData = creativeResponse.data;
+  );
+   creativeData = creativeResponse.data;
           console.log("Creative data fetched successfully");
         } catch (error) {
           console.error("Error fetching creative data:", error.response?.data || error.message);
@@ -93,7 +93,7 @@ export async function GET(req) {
       }
     } catch (error) {
       console.error("Error fetching ads data:", error.response?.data || error.message);
-    }
+}
 
     const campaignData = insightsResponse.data.data[0];
 
@@ -113,7 +113,7 @@ export async function GET(req) {
     console.log("Fetching daily insights...");
     let dailyInsights = [];
     try {
-      const dailyInsightsResponse = await axios.get(
+    const dailyInsightsResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/insights?time_increment=1&fields=clicks,impressions,spend,cpc,cpm,ctr,reach,frequency,actions&access_token=${accessToken}`
       );
       dailyInsights = dailyInsightsResponse.data.data;
@@ -126,7 +126,7 @@ export async function GET(req) {
     console.log("Fetching platform breakdown...");
     let platformData = [];
     try {
-      const platformBreakdownResponse = await axios.get(
+    const platformBreakdownResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=publisher_platform&fields=clicks,impressions,spend,cpc,cpm,ctr&access_token=${accessToken}`
       );
       platformData = platformBreakdownResponse.data.data;
@@ -139,7 +139,7 @@ export async function GET(req) {
     console.log("Fetching action types...");
     let actionData = [];
     try {
-      const actionTypesResponse = await axios.get(
+    const actionTypesResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=actions,action_values&access_token=${accessToken}`
       );
       actionData = actionTypesResponse.data.data;
@@ -152,7 +152,7 @@ export async function GET(req) {
     console.log("Fetching demographic data...");
     let demographicData = [];
     try {
-      const ageGenderResponse = await axios.get(
+    const ageGenderResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=age,gender&fields=clicks,impressions,spend&access_token=${accessToken}`
       );
       demographicData = ageGenderResponse.data.data;
@@ -165,7 +165,7 @@ export async function GET(req) {
     console.log("Fetching country data...");
     let countryData = [];
     try {
-      const countryResponse = await axios.get(
+    const countryResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=country&fields=clicks,impressions,spend&access_token=${accessToken}`
       );
       countryData = countryResponse.data.data;
@@ -178,7 +178,7 @@ export async function GET(req) {
     console.log("Fetching placement data...");
     let placementData = [];
     try {
-      const placementResponse = await axios.get(
+    const placementResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=clicks,impressions,spend,cpc,cpm,ctr&breakdowns=publisher_platform,platform_position&access_token=${accessToken}`
       );
       placementData = placementResponse.data.data;
@@ -191,7 +191,7 @@ export async function GET(req) {
     console.log("Fetching device data...");
     let deviceData = [];
     try {
-      const deviceBreakdownResponse = await axios.get(
+    const deviceBreakdownResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=device_platform&fields=clicks,impressions,spend,cpc,cpm,ctr&access_token=${accessToken}`
       );
       deviceData = deviceBreakdownResponse.data.data;
