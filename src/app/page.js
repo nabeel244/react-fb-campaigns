@@ -499,19 +499,28 @@ export default function HomePage() {
         return tableText; // Not enough data
       }
       
-      // Build HTML
-      let html = `<h3 style="color: #1e40af; font-size: 18px; margin: 1em 0 0.5em 0; font-weight: 600;">${title}</h3>\n`;
-      html += `<div style="overflow-x: auto; margin: 1em 0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">\n`;
+      // Build HTML with simple title
+      let html = `<h3 style="color: #1e40af; font-size: 18px; font-weight: 600; margin: 1em 0 0.5em 0; padding: 8px 0; border-bottom: 2px solid #3b82f6;">📊 ${title}</h3>\n`;
+      html += `<div style="overflow-x: auto; margin: 1em 0; border: 1px solid #e2e8f0; border-radius: 8px;">\n`;
       html += `<table style="border-collapse: collapse; width: 100%; min-width: 600px; background: white; font-size: 0.9rem;">\n`;
       
-      // Header row
+      // Header row with simple styling
       html += '<thead><tr>';
       for (let header of expectedHeaders) {
-        html += `<th style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); font-weight: 600; color: #2d3748; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #e2e8f0; padding: 12px 16px; text-align: left; vertical-align: top; border-bottom: 2px solid #cbd5e0;">${header}</th>`;
+        html += `<th style="
+          background: #f8fafc;
+          color: #1e40af;
+          font-weight: 600;
+          font-size: 0.9rem;
+          border: 1px solid #e2e8f0;
+          padding: 12px 16px;
+          text-align: left;
+          vertical-align: middle;
+        ">${header}</th>`;
       }
       html += '</tr></thead>\n<tbody>\n';
       
-      // Data rows
+      // Data rows with simple styling
       let currentRow = [];
       for (let part of parts) {
         // Skip parts that look like headers
@@ -523,8 +532,19 @@ export default function HomePage() {
         
         if (currentRow.length === expectedHeaders.length) {
           html += '<tr>';
-          for (let cell of currentRow) {
-            html += `<td style="border: 1px solid #e2e8f0; padding: 12px 16px; text-align: left; vertical-align: top; background: white; transition: background-color 0.2s ease;">${cell}</td>`;
+          for (let i = 0; i < currentRow.length; i++) {
+            const cell = currentRow[i];
+            const isFirstColumn = i === 0;
+            
+            html += `<td style="
+              border: 1px solid #e2e8f0;
+              padding: 12px 16px;
+              text-align: left;
+              vertical-align: middle;
+              background: white;
+              font-weight: ${isFirstColumn ? '600' : '400'};
+              color: ${isFirstColumn ? '#1e40af' : '#374151'};
+            ">${cell}</td>`;
           }
           html += '</tr>\n';
           currentRow = [];
@@ -541,14 +561,14 @@ export default function HomePage() {
     }
   };
 
-  // Clean and format streaming text like Python chatbot
+  // Clean and format streaming text with flat structure
   const cleanStreamingText = (text) => {
     if (!text) return '';
     
     // Step 1: Convert inline tables to HTML
     let processedContent = convertInlineTablesDirectly(text);
     
-    // Step 2: Clean up the remaining text
+    // Step 2: Simple text cleaning and formatting
     let cleaned = processedContent
       // Remove duplicate patterns
       .replace(/(HereHere is the complete|Here is the complete|Here is your complete campaign data:)/g, '')
@@ -557,19 +577,17 @@ export default function HomePage() {
       .replace(/\*\*\*/g, '') // Remove triple asterisks
       .replace(/\*\*/g, '') // Remove double asterisks
       
-      // Add line breaks before headers
-      .replace(/([^#])##\s*/g, '$1\n\n## ')
-      .replace(/^##\s*/g, '## ')
+      // Highlight section titles only
+      .replace(/Campaign Overview/g, '<h2 style="color: #1e40af; font-size: 18px; font-weight: 600; margin: 1em 0 0.5em 0; padding: 8px 0; border-bottom: 2px solid #3b82f6;">📊 Campaign Overview</h2>')
+      .replace(/Platform Breakdown/g, '<h3 style="color: #7c3aed; font-size: 16px; font-weight: 600; margin: 1em 0 0.5em 0; padding: 6px 0; border-bottom: 1px solid #a855f7;">🌐 Platform Breakdown</h3>')
+      .replace(/Cost Per Action Types/g, '<h3 style="color: #dc2626; font-size: 16px; font-weight: 600; margin: 1em 0 0.5em 0; padding: 6px 0; border-bottom: 1px solid #ef4444;">💰 Cost Per Action Types</h3>')
+      .replace(/Daily Insights/g, '<h3 style="color: #ea580c; font-size: 16px; font-weight: 600; margin: 1em 0 0.5em 0; padding: 6px 0; border-bottom: 1px solid #f97316;">📅 Daily Insights</h3>')
+      .replace(/Actions Overall/g, '<h3 style="color: #0891b2; font-size: 16px; font-weight: 600; margin: 1em 0 0.5em 0; padding: 6px 0; border-bottom: 1px solid #06b6d4;">📈 Actions Overall</h3>')
+      .replace(/Demographics/g, '<h3 style="color: #be185d; font-size: 16px; font-weight: 600; margin: 1em 0 0.5em 0; padding: 6px 0; border-bottom: 1px solid #ec4899;">👥 Demographics</h3>')
       
-      // Add line breaks before # headers
-      .replace(/([^#])#\s*([^#])/g, '$1\n\n# $2')
-      .replace(/^#\s*([^#])/g, '# $1')
-      
-      // Add line breaks after headers
-      .replace(/(#{1,6}\s+[^\n]+)/g, '$1\n')
-      
-      // Add spacing around bullet points
-      .replace(/([^-\n])-\s+/g, '$1\n- ')
+      // Simple bullet points - one line each, no indentation
+      .replace(/([^-\n])-\s+/g, '$1\n<div style="margin: 2px 0; padding: 4px 0;"><span style="color: #3b82f6; font-weight: 600;">•</span> ')
+      .replace(/\n- /g, '\n<div style="margin: 2px 0; padding: 4px 0;"><span style="color: #3b82f6; font-weight: 600;">•</span> ')
       
       // Add line breaks for numbered lists
       .replace(/(\d+\.)\s+/g, '\n$1 ')
