@@ -2,6 +2,9 @@
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -35,6 +38,44 @@ export default function HomePage() {
   const [isTyping, setIsTyping] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(null);
+  
+  // Message ID counter to ensure unique IDs
+  const [messageIdCounter, setMessageIdCounter] = useState(0);
+
+  // Function to clean and format streaming text
+  const cleanStreamingText = (text) => {
+    if (!text) return '';
+    
+    // Remove duplicate content patterns and format for better readability
+    let cleaned = text
+      // Remove duplicate headers and repeated phrases
+      .replace(/(Here is your complete campaign data:)/g, '')
+      .replace(/(Campaign Name:)/g, '**Campaign Name:**')
+      .replace(/(Objective:)/g, '**Objective:**')
+      .replace(/(Date Range:)/g, '**Date Range:**')
+      .replace(/(Total Spend:)/g, '**Total Spend:**')
+      .replace(/(Total Clicks:)/g, '**Total Clicks:**')
+      .replace(/(Total Impressions:)/g, '**Total Impressions:**')
+      .replace(/(Total Reach:)/g, '**Total Reach:**')
+      .replace(/(Frequency:)/g, '**Frequency:**')
+      .replace(/(Average CTR:)/g, '**Average CTR:**')
+      .replace(/(Average CPC:)/g, '**Average CPC:**')
+      .replace(/(Average CPM:)/g, '**Average CPM:**')
+      .replace(/(Reach Efficiency:)/g, '**Reach Efficiency:**')
+      .replace(/(Conversion Rate:)/g, '**Conversion Rate:**')
+      .replace(/(Cost per Conversion:)/g, '**Cost per Conversion:**')
+      // Clean up extra spaces and line breaks
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
+    
+    // Add proper markdown formatting
+    if (cleaned.includes('**Campaign Name:**')) {
+      cleaned = `# Campaign Analysis\n\n${cleaned}`;
+    }
+    
+    return cleaned;
+  };
 
   // Streaming send message function
   const sendMessage = async () => {
@@ -43,9 +84,16 @@ export default function HomePage() {
     const message = textareaRef.current.value.trim();
     if (!message) return;
 
+    // Generate unique IDs
+    const userMessageId = messageIdCounter + 1;
+    const botMessageId = messageIdCounter + 2;
+    
+    // Update counter
+    setMessageIdCounter(prev => prev + 3);
+
     // Add user message
     const newMessage = {
-      id: Date.now(),
+      id: userMessageId,
       type: 'user',
       message: message,
       timestamp: new Date()
@@ -55,9 +103,6 @@ export default function HomePage() {
     // Clear input
     textareaRef.current.value = '';
     setIsTyping(true);
-
-    // Add initial bot message for streaming
-    const botMessageId = Date.now() + 1;
     const initialBotMessage = {
       id: botMessageId,
       type: 'bot',
@@ -105,13 +150,14 @@ export default function HomePage() {
                   const data = JSON.parse(line.slice(6));
                   
                   if (data.text) {
-                    accumulatedText += data.text;
+                    // Clean and format the streaming text
+                    const cleanedText = cleanStreamingText(data.text);
                     
-                    // Update the bot message with accumulated text
+                    // Update the bot message with cleaned text
                     setMessages(prev => 
                       prev.map(msg => 
                         msg.id === botMessageId 
-                          ? { ...msg, message: accumulatedText }
+                          ? { ...msg, message: cleanedText }
                           : msg
                       )
                     );
@@ -333,12 +379,8 @@ export default function HomePage() {
         // Open chatbot and create new chat session
         const newChatId = Date.now().toString();
         setCurrentChatId(newChatId);
-        setMessages([{
-          id: 1,
-          type: 'bot',
-          message: `Hello! I'm your Facebook Ads AI assistant. I've successfully uploaded your campaign "${data.campaign_name}" data to our analysis system. I can help you analyze the data, provide insights, and answer questions about your advertising performance. How can I help you today?`,
-          timestamp: new Date()
-        }]);
+        setMessages([]); // Start with empty messages
+        setMessageIdCounter(0); // Reset counter
         setIsChatOpen(true);
       }
     } catch (err) {
@@ -363,17 +405,14 @@ export default function HomePage() {
     setIsChatOpen(false);
     setMessages([]);
     setCurrentChatId(null);
+    setMessageIdCounter(0); // Reset counter
   };
 
   const startNewChat = () => {
     const newChatId = Date.now().toString();
     setCurrentChatId(newChatId);
-    setMessages([{
-      id: 1,
-      type: 'bot',
-      message: 'Hello! I\'m your Facebook Ads AI assistant. I can help you analyze your campaign data, provide insights, and answer questions about your advertising performance. How can I help you today?',
-      timestamp: new Date()
-    }]);
+    setMessages([]); // Start with empty messages
+    setMessageIdCounter(0); // Reset counter
     setIsChatOpen(true);
   };
 
@@ -493,11 +532,17 @@ export default function HomePage() {
             {isUser ? (
               message.message
             ) : (
-              <div 
-                dangerouslySetInnerHTML={{ 
-                  __html: renderMarkdown(message.message) + (message.isStreaming ? '<span style="opacity: 0.7; animation: blink 1s infinite;">▊</span>' : '')
-                }} 
-              />
+              <div className="chatbot-markdown">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                >
+                  {message.message || ''}
+                </ReactMarkdown>
+                {message.isStreaming && (
+                  <span style={{opacity: 0.7, animation: 'blink 1s infinite'}}>▊</span>
+                )}
+              </div>
             )}
           </div>
           <div style={{
@@ -728,10 +773,36 @@ export default function HomePage() {
             padding: '20px 0',
             backgroundColor: '#fafafa'
           }}>
-            {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
-            {isTyping && <TypingIndicator />}
+            {messages.length === 0 ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                color: '#666',
+                textAlign: 'center',
+                padding: '40px'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🤖</div>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: '600' }}>
+                  Welcome to Facebook Ads AI Assistant
+                </h3>
+                <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                  I can help you analyze your campaign data, provide insights, and answer questions about your advertising performance.
+                </p>
+                <p style={{ margin: '10px 0 0 0', fontSize: '14px', color: '#999' }}>
+                  Start by asking me about your campaign data!
+                </p>
+              </div>
+            ) : (
+              <>
+                {messages.map((message) => (
+                  <ChatMessage key={message.id} message={message} />
+                ))}
+                {isTyping && <TypingIndicator />}
+              </>
+            )}
           </div>
 
           {/* Input Area */}
