@@ -463,26 +463,30 @@ export default function HomePage() {
 
 
   // Loading Spinner Component
-  const LoadingSpinner = ({ size = "medium", text = "Loading..." }) => {
-    const sizeClasses = {
-      small: "w-4 h-4",
-      medium: "w-8 h-8", 
-      large: "w-12 h-12"
+  const LoadingSpinner = ({ size = "medium" }) => {
+    const sizeValues = {
+      small: '48px',
+      medium: '80px', 
+      large: '96px'
     };
 
     return (
       <div style={{ 
         display: 'flex', 
-        flexDirection: 'column', 
         alignItems: 'center', 
         justifyContent: 'center',
-        padding: '20px',
-        gap: '10px'
+        padding: '20px'
       }}>
         <div 
-          className={`${sizeClasses[size]} border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin`}
+          style={{
+            width: sizeValues[size],
+            height: sizeValues[size],
+            border: '4px solid rgba(0, 0, 0, 0.2)',
+            borderTop: '4px solid #000000',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}
         ></div>
-        <p style={{ color: '#666', fontSize: '14px' }}>{text}</p>
       </div>
     );
   };
@@ -702,15 +706,15 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-            <div style={{
-              fontSize: '12px',
-              color: isUser ? 'rgba(255, 255, 255, 0.7)' : '#6b7280',
-              marginTop: '6px',
-              padding: '0 8px',
-              fontWeight: '500'
-            }}>
-              {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
+             <div style={{
+               fontSize: '12px',
+               color: 'white',
+               marginTop: '6px',
+               padding: '0 8px',
+               fontWeight: '500'
+             }}>
+               {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+             </div>
           </div>
         </div>
       );
@@ -1054,7 +1058,7 @@ export default function HomePage() {
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
       {status === "loading" ? (
-        <LoadingSpinner size="large" text="Authenticating..." />
+        <LoadingSpinner size="large" />
       ) : isChatOpen ? (
         <ChatbotInterface />
       ) : (
@@ -1126,7 +1130,7 @@ export default function HomePage() {
                   textAlign: 'center',
                   boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
                 }}>
-                  <LoadingSpinner size="large" text="Loading campaign details..." />
+                  <LoadingSpinner size="large" />
                 </div>
               ) : selectedCampaignMetrics ? (
                 <div style={{
@@ -1490,7 +1494,7 @@ export default function HomePage() {
             </h2>
             
             {loading.adAccounts ? (
-              <LoadingSpinner text="Loading ad accounts..." />
+              <LoadingSpinner />
             ) : error ? (
               <div style={{
                 backgroundColor: '#f8d7da',
@@ -1637,7 +1641,7 @@ export default function HomePage() {
               </h2>
               
               {loading.campaigns ? (
-                <LoadingSpinner text="Loading campaigns..." />
+                <LoadingSpinner />
               ) : campaigns.length > 0 ? (
                 <div style={{ position: 'relative' }}>
                   {loading.campaignDetails && (
@@ -1654,7 +1658,7 @@ export default function HomePage() {
                       zIndex: 10,
                       borderRadius: '12px'
                     }}>
-                      <LoadingSpinner size="large" text="Loading campaign data..." />
+                      <LoadingSpinner size="large" />
                     </div>
                   )}
                   <div className="campaigns-grid" style={{ 
