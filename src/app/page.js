@@ -57,6 +57,9 @@ export default function HomePage() {
     };
     setMessages(prev => [...prev, newMessage]);
     
+    // Scroll to bottom when user sends message
+    setTimeout(() => scrollToBottom(), 10);
+    
     // Clear input
     textareaRef.current.value = '';
     setIsTyping(true);
@@ -71,6 +74,9 @@ export default function HomePage() {
       isStreaming: true
     };
     setMessages(prev => [...prev, initialBotMessage]);
+    
+    // Scroll to bottom when bot message is added
+    setTimeout(() => scrollToBottom(), 10);
 
     try {
       // Call Python chatbot streaming API
@@ -108,28 +114,32 @@ export default function HomePage() {
                 try {
                   const data = JSON.parse(line.slice(6));
                   
-                  if (data.text) {
-                    // Replace entire message content like Python chatbot
-                    setMessages(prev => 
-                      prev.map(msg => 
-                        msg.id === botMessageId 
-                          ? { ...msg, message: data.text, isStreaming: true }
-                          : msg
-                      )
-                    );
-                  }
+                   if (data.text) {
+                     // Replace entire message content like Python chatbot
+                     setMessages(prev => 
+                       prev.map(msg => 
+                         msg.id === botMessageId 
+                           ? { ...msg, message: data.text, isStreaming: true }
+                           : msg
+                       )
+                     );
+                     // Scroll to bottom during streaming to keep chat at bottom
+                     setTimeout(() => scrollToBottom(), 10);
+                   }
                   
-                  if (data.done) {
-                    // Mark streaming as complete
-                    setMessages(prev => 
-                      prev.map(msg => 
-                        msg.id === botMessageId 
-                          ? { ...msg, isStreaming: false }
-                          : msg
-                      )
-                    );
-                    break;
-                  }
+                   if (data.done) {
+                     // Mark streaming as complete
+                     setMessages(prev => 
+                       prev.map(msg => 
+                         msg.id === botMessageId 
+                           ? { ...msg, isStreaming: false }
+                           : msg
+                       )
+                     );
+                     // Final scroll to bottom when streaming is complete
+                     setTimeout(() => scrollToBottom(), 10);
+                     break;
+                   }
                 } catch (parseError) {
                   console.error('Error parsing SSE data:', parseError);
                 }
@@ -188,25 +198,27 @@ export default function HomePage() {
   useEffect(() => {
     if (isChatOpen && textareaRef.current) {
       textareaRef.current.focus();
+      // Scroll to bottom when chat opens
+      setTimeout(() => scrollToBottom(), 100);
     }
   }, [isChatOpen]);
 
   // Simple scroll to bottom function
   const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   };
 
-  // Auto-scroll when messages change
+  // Auto-scroll to bottom whenever messages change
   useEffect(() => {
-    // Always scroll to bottom when messages change
+    // Always scroll to bottom when messages change (including during streaming)
     const timeoutId = setTimeout(() => {
       scrollToBottom();
     }, 50);
     
     return () => clearTimeout(timeoutId);
-  }, [messages]);
+  }, [messages]); // Trigger on any message change
 
   // Cleanup timeout on unmount
   useEffect(() => {
