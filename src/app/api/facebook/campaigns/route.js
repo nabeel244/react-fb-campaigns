@@ -20,7 +20,7 @@ export async function GET(req) {
 
     // Fetch campaigns from the ad account
     const campaignsResponse = await axios.get(
-      `https://graph.facebook.com/v19.0/${adAccountId}/campaigns?fields=id,name,status,objective&access_token=${accessToken}`
+      `https://graph.facebook.com/v23.0/${adAccountId}/campaigns?fields=id,name,status,objective&access_token=${accessToken}`
     );
 
     return new Response(JSON.stringify(campaignsResponse.data), { status: 200 });

@@ -12,8 +12,11 @@
     "axios": "^1.8.2",
     "next": "15.2.1",
     "next-auth": "^4.24.11",
-    "openai": "^4.87.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1"
   }
 }

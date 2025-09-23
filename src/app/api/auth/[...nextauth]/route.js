@@ -7,7 +7,7 @@ export const authOptions = {
       clientId: process.env.FACEBOOK_CLIENT_ID,
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
       authorization: {
-        url: "https://www.facebook.com/v19.0/dialog/oauth",
+        url: "https://www.facebook.com/v23.0/dialog/oauth",
         params: {
           scope: "ads_read,business_management,email", // Required permissions
         },
