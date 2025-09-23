@@ -27,6 +27,8 @@ export default function HomePage() {
   
   // Refs
   const textareaRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
 
   
@@ -36,6 +38,7 @@ export default function HomePage() {
   const [isTyping, setIsTyping] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(null);
+  const scrollTimeoutRef = useRef(null);
 
 
   // Streaming send message function
@@ -188,6 +191,32 @@ export default function HomePage() {
     }
   }, [isChatOpen]);
 
+  // Simple scroll to bottom function
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Auto-scroll when messages change
+  useEffect(() => {
+    // Always scroll to bottom when messages change
+    const timeoutId = setTimeout(() => {
+      scrollToBottom();
+    }, 50);
+    
+    return () => clearTimeout(timeoutId);
+  }, [messages]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
  
 
 
@@ -332,16 +361,16 @@ export default function HomePage() {
           console.error('Error sending data to Python API:', pythonError);
         }
         
-        // Open chatbot and create new chat session
-        const newChatId = Date.now().toString();
-        setCurrentChatId(newChatId);
-        setMessages([{
-          id: 1,
-          type: 'bot',
-          message: data.campaign_name,
-          timestamp: new Date()
-        }]);
-        setIsChatOpen(true);
+         // Open chatbot and create new chat session
+         const newChatId = Date.now().toString();
+         setCurrentChatId(newChatId);
+         setMessages([{
+           id: 1,
+           type: 'bot',
+           message: data.campaign_name,
+           timestamp: new Date()
+         }]);
+         setIsChatOpen(true);
       }
     } catch (err) {
         setError("Error fetching campaign insights");
@@ -909,19 +938,23 @@ export default function HomePage() {
           flexDirection: 'column',
           height: '100%'
         }}>
-          {/* Messages Area */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '30px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
-            {isTyping && <TypingIndicator />}
-          </div>
+           {/* Messages Area */}
+           <div 
+             ref={messagesContainerRef}
+             style={{
+               flex: 1,
+               overflowY: 'auto',
+               padding: '30px',
+               background: 'rgba(255, 255, 255, 0.1)',
+               backdropFilter: 'blur(10px)'
+             }}
+           >
+             {messages.map((message) => (
+               <ChatMessage key={message.id} message={message} />
+             ))}
+             {isTyping && <TypingIndicator />}
+             <div ref={messagesEndRef} />
+           </div>
 
           {/* Input Area */}
           <div style={{
