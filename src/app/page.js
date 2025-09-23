@@ -88,7 +88,7 @@ export default function HomePage() {
 
       console.log('Sending message to Python streaming API:', chatPayload);
 
-      const response = await fetch('http://localhost:8000/api/chat/stream', {
+      const response = await fetch('http://16.16.70.213:8000/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -355,7 +355,7 @@ export default function HomePage() {
 
           console.log('Sending data to Python API:', pythonApiPayload);
 
-          const pythonResponse = await fetch('http://localhost:8000/api/data/upload', {
+          const pythonResponse = await fetch('http://16.16.70.213:8000/api/data/upload', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
