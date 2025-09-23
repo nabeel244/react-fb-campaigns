@@ -609,29 +609,37 @@ export default function HomePage() {
     const cleanedText = cleanStreamingText(decodedText);
     
     const isUser = message.type === 'user';
-    
-      return (
+
+  return (
         <div style={{
           display: 'flex',
           justifyContent: isUser ? 'flex-end' : 'flex-start',
-          marginBottom: '20px',
-          padding: '0 20px'
+          marginBottom: '24px',
+          padding: '0 10px'
         }}>
           <div style={{
-            maxWidth: '80%',
+            maxWidth: '85%',
             display: 'flex',
             flexDirection: 'column',
             alignItems: isUser ? 'flex-end' : 'flex-start'
           }}>
             <div style={{
-              padding: '12px 16px',
-              backgroundColor: isUser ? '#007bff' : '#f1f3f4',
-              color: isUser ? 'white' : '#333',
-              borderRadius: '12px',
-              fontSize: '14px',
-              lineHeight: '1.5',
+              padding: '16px 20px',
+              background: isUser 
+                ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                : 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              color: isUser ? 'white' : '#1f2937',
+              borderRadius: isUser ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
+              fontSize: '15px',
+              lineHeight: '1.6',
               wordWrap: 'break-word',
-              whiteSpace: 'pre-wrap'
+              whiteSpace: 'pre-wrap',
+              boxShadow: isUser 
+                ? '0 4px 15px rgba(102, 126, 234, 0.3)' 
+                : '0 4px 15px rgba(0, 0, 0, 0.1)',
+              border: isUser ? 'none' : '1px solid rgba(255, 255, 255, 0.2)',
+              fontWeight: '500'
             }}>
               {isUser ? (
                 decodedText // Display raw text for user
@@ -654,10 +662,11 @@ export default function HomePage() {
               )}
             </div>
             <div style={{
-              fontSize: '11px',
-              color: '#666',
-              marginTop: '4px',
-              padding: '0 4px'
+              fontSize: '12px',
+              color: isUser ? 'rgba(255, 255, 255, 0.7)' : '#6b7280',
+              marginTop: '6px',
+              padding: '0 8px',
+              fontWeight: '500'
             }}>
               {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>
@@ -670,41 +679,48 @@ export default function HomePage() {
     <div style={{
       display: 'flex',
       justifyContent: 'flex-start',
-      marginBottom: '20px',
-      padding: '0 20px'
+      marginBottom: '24px',
+      padding: '0 10px'
     }}>
       <div style={{
-        padding: '12px 16px',
-        backgroundColor: '#f1f3f4',
-        borderRadius: '12px',
+        padding: '16px 20px',
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '20px 20px 20px 4px',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px'
+        gap: '12px',
+        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
       }}>
-        <div style={{ display: 'flex', gap: '4px' }}>
+        <div style={{ display: 'flex', gap: '6px' }}>
           <div style={{
-            width: '6px',
-            height: '6px',
-            backgroundColor: '#666',
+            width: '8px',
+            height: '8px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             borderRadius: '50%',
             animation: 'typing 1.4s infinite ease-in-out'
           }}></div>
           <div style={{
-            width: '6px',
-            height: '6px',
-            backgroundColor: '#666',
+            width: '8px',
+            height: '8px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             borderRadius: '50%',
             animation: 'typing 1.4s infinite ease-in-out 0.2s'
           }}></div>
           <div style={{
-            width: '6px',
-            height: '6px',
-            backgroundColor: '#666',
+            width: '8px',
+            height: '8px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             borderRadius: '50%',
             animation: 'typing 1.4s infinite ease-in-out 0.4s'
           }}></div>
         </div>
-        <span style={{ fontSize: '14px', color: '#666' }}>AI is thinking...</span>
+        <span style={{ 
+          fontSize: '15px', 
+          color: '#6b7280',
+          fontWeight: '500'
+        }}>AI is thinking...</span>
       </div>
     </div>
   );
@@ -805,40 +821,57 @@ export default function HomePage() {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'white',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       zIndex: 1000,
       display: 'flex',
       flexDirection: 'column'
     }}>
       {/* Top Header */}
       <div style={{
-        height: '60px',
-        backgroundColor: '#007bff',
-        color: 'white',
+        height: '70px',
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)',
+        color: '#1f2937',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 20px',
-        borderBottom: '1px solid #0056b3'
+        padding: '0 30px',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{
-            width: '32px',
-            height: '32px',
-            backgroundColor: 'rgba(255,255,255,0.2)',
-            borderRadius: '50%',
+            width: '48px',
+            height: '48px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '16px'
+            fontSize: '20px',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
           }}>
             🤖
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+            <h2 style={{ 
+              margin: 0, 
+              fontSize: '22px', 
+              fontWeight: '800',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              letterSpacing: '-0.5px'
+            }}>
               Facebook Ads AI Assistant
             </h2>
-            <div style={{ fontSize: '12px', opacity: 0.9 }}>
+            <div style={{ 
+              fontSize: '14px', 
+              color: '#6b7280',
+              fontWeight: '500',
+              marginTop: '2px'
+            }}>
               {selectedCampaignMetrics ? `Analyzing: ${selectedCampaignMetrics.campaign_name}` : 'Ready to help'}
             </div>
           </div>
@@ -846,16 +879,18 @@ export default function HomePage() {
         <button
           onClick={closeChat}
           style={{
-            background: 'none',
-            border: 'none',
-            color: 'white',
-            fontSize: '24px',
-            cursor: 'pointer',
-            padding: '8px',
-            borderRadius: '4px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            color: '#ef4444',
+            fontSize: '20px',
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
           }}
         >
           ✕
@@ -878,8 +913,9 @@ export default function HomePage() {
           <div style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '20px 0',
-            backgroundColor: '#fafafa'
+            padding: '30px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)'
           }}>
             {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
@@ -889,15 +925,17 @@ export default function HomePage() {
 
           {/* Input Area */}
           <div style={{
-            padding: '20px',
-            backgroundColor: 'white',
-            borderTop: '1px solid #e0e0e0'
+            padding: '30px',
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.1)'
           }}>
             <div style={{
               display: 'flex',
-              gap: '12px',
+              gap: '16px',
               alignItems: 'flex-end',
-              maxWidth: '800px',
+              maxWidth: '900px',
               margin: '0 auto'
             }}>
               <div style={{ flex: 1, position: 'relative' }}>
@@ -914,15 +952,18 @@ export default function HomePage() {
                   placeholder="Ask me about your campaign data..."
                   style={{
                     width: '100%',
-                    height: '44px',
-                    padding: '12px 16px',
-                    border: '1px solid #ddd',
-                    borderRadius: '22px',
-                    fontSize: '14px',
+                    height: '52px',
+                    padding: '16px 20px',
+                    border: '2px solid rgba(102, 126, 234, 0.2)',
+                    borderRadius: '26px',
+                    fontSize: '15px',
                     outline: 'none',
                     fontFamily: 'inherit',
-                    backgroundColor: '#f8f9fa',
-                    color: '#000000'
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    color: '#1f2937',
+                    fontWeight: '500',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)'
                   }}
                 />
               </div>
@@ -930,18 +971,25 @@ export default function HomePage() {
                 onClick={sendMessage}
                 disabled={isTyping}
                 style={{
-                  width: '44px',
-                  height: '44px',
-                  backgroundColor: !isTyping ? '#007bff' : '#ccc',
+                  width: '52px',
+                  height: '52px',
+                  background: !isTyping 
+                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                    : 'linear-gradient(135deg, #d1d5db, #9ca3af)',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '50%',
+                  borderRadius: '26px',
                   cursor: !isTyping ? 'pointer' : 'not-allowed',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '18px',
-                  transition: 'all 0.2s ease'
+                  fontWeight: '600',
+                  boxShadow: !isTyping 
+                    ? '0 4px 15px rgba(102, 126, 234, 0.3)' 
+                    : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                  transition: 'all 0.2s ease',
+                  transform: 'translateY(0)'
                 }}
               >
                 ➤
@@ -954,7 +1002,12 @@ export default function HomePage() {
   );
 
   return (
-    <div style={{ padding: '30px', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+    <div className="main-container" style={{ 
+      padding: '30px', 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      minHeight: '100vh',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    }}>
       {status === "loading" ? (
         <LoadingSpinner size="large" text="Authenticating..." />
       ) : isChatOpen ? (
@@ -962,36 +1015,44 @@ export default function HomePage() {
       ) : (
         <>
           {/* Header */}
-          <div style={{ 
+          <div className="header-container" style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
-            marginBottom: '30px',
+            marginBottom: '40px',
             flexWrap: 'wrap',
-            gap: '20px'
+            gap: '20px',
+            background: '#ffffff',
+            padding: '25px 30px',
+            borderRadius: '20px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb'
           }}>
-            <h1 style={{ 
-              fontSize: '30px', 
-              fontWeight: '700', 
-              color: '#5A9EC9',
-              margin: 0
+            <h1 className="header-title" style={{ 
+              fontSize: '32px', 
+              fontWeight: '800', 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              margin: 0,
+              letterSpacing: '-0.5px'
             }}>
               Facebook Ad Accounts
             </h1>
           <button
             onClick={() => signOut()}
             style={{
-              backgroundColor: '#e53e3e',
+              background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
               color: 'white',
-              padding: '12px 18px',
-              borderRadius: '8px',
+              padding: '14px 24px',
+              borderRadius: '12px',
               border: 'none',
               cursor: 'pointer',
               fontWeight: '600',
-                transition: 'background-color 0.2s ease'
+              fontSize: '14px',
+              boxShadow: '0 4px 15px rgba(255, 107, 107, 0.3)'
             }}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#c53030'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#e53e3e'}
           >
             Logout
           </button>
@@ -1412,49 +1473,89 @@ export default function HomePage() {
                 </button>
               </div>
             ) : (
-              <div style={{ 
+              <div className="ad-accounts-grid" style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-                gap: '20px' 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                gap: '20px'
               }}>
                 {adAccounts.map((account) => (
                   <div
                     key={account.id}
                     onClick={() => handleAccountClick(account.id)}
+                    className="card-padding"
                     style={{
                       cursor: 'pointer',
-                      padding: '20px',
-                      backgroundColor: 'white',
-                      borderRadius: '12px',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                      transition: 'all 0.3s ease-in-out',
-                      border: '1px solid #e9ecef'
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.transform = 'translateY(-1px)';
-                      e.target.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.12)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                      padding: '25px',
+                      background: '#ffffff',
+                      borderRadius: '20px',
+                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                      border: '1px solid #e5e7eb',
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ 
-                        fontSize: '18px', 
-                        fontWeight: '700', 
-                        color: '#333' 
-                      }}>
-                        {account.name}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          color: account.account_status === 1 ? '#28a745' : '#dc3545',
-                          fontWeight: '600',
-                          padding: '4px 8px',
+                    <div style={{ 
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '4px',
+                      background: account.account_status === 1 
+                        ? 'linear-gradient(90deg, #4ade80, #22c55e)' 
+                        : 'linear-gradient(90deg, #f87171, #ef4444)',
+                      borderRadius: '20px 20px 0 0'
+                    }} />
+                    <div className="card-content" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div className="card-avatar" style={{
+                          width: '48px',
+                          height: '48px',
                           borderRadius: '12px',
-                          backgroundColor: account.account_status === 1 ? '#d4edda' : '#f8d7da'
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: '700',
+                          fontSize: '18px'
+                        }}>
+                          {account.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <span className="card-title" style={{ 
+                            fontSize: '20px', 
+                            fontWeight: '700', 
+                            color: '#1f2937',
+                            display: 'block',
+                            marginBottom: '4px'
+                          }}>
+                            {account.name}
+                          </span>
+                          <span className="card-subtitle" style={{
+                            fontSize: '14px',
+                            color: '#6b7280',
+                            fontWeight: '500'
+                          }}>
+                            Account ID: {account.id}
+                          </span>
+                        </div>
+                      </div>
+                      <span
+                        className="status-badge"
+                        style={{
+                          fontSize: '13px',
+                          color: account.account_status === 1 ? '#059669' : '#dc2626',
+                          fontWeight: '700',
+                          padding: '8px 16px',
+                          borderRadius: '20px',
+                          background: account.account_status === 1 
+                            ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)' 
+                            : 'linear-gradient(135deg, #fee2e2, #fecaca)',
+                          border: account.account_status === 1 
+                            ? '1px solid #a7f3d0' 
+                            : '1px solid #fecaca',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
                         }}
                       >
                         {account.account_status === 1 ? 'Active' : 'Inactive'}
@@ -1468,12 +1569,24 @@ export default function HomePage() {
 
           {/* Campaigns Section */}
           {selectedAccount && (
-            <div style={{ marginBottom: '30px', position: 'relative' }}>
+            <div className="campaigns-section" style={{ 
+              marginBottom: '40px', 
+              position: 'relative',
+              background: '#ffffff',
+              borderRadius: '20px',
+              padding: '30px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #e5e7eb'
+            }}>
               <h2 style={{ 
-                fontSize: '24px', 
-                fontWeight: '600', 
-                color: '#333',
-                marginBottom: '20px'
+                fontSize: '28px', 
+                fontWeight: '800', 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginBottom: '25px',
+                letterSpacing: '-0.5px'
               }}>
                 Campaigns
               </h2>
@@ -1499,54 +1612,74 @@ export default function HomePage() {
                       <LoadingSpinner size="large" text="Loading campaign data..." />
                     </div>
                   )}
-                  <div style={{ 
+                  <div className="campaigns-grid" style={{ 
                   display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
-                  gap: '20px' 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                  gap: '20px'
                 }}>
                 {campaigns.map((campaign) => (
                     <div
                     key={campaign.id}
                       onClick={() => handleCampaignClick(campaign)}
                     style={{
-                        padding: '20px',
-                        backgroundColor: 'white',
-                        borderRadius: '12px',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        padding: '25px',
+                        background: '#ffffff',
+                        borderRadius: '16px',
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
                         cursor: loading.campaignDetails ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.3s ease-in-out',
-                        border: '1px solid #e9ecef',
-                        opacity: campaign.status === 'PAUSED' ? 0.7 : loading.campaignDetails ? 0.5 : 1,
-                        position: 'relative'
-                      }}
-                      onMouseOver={(e) => {
-                        e.target.style.transform = 'translateY(-1px)';
-                        e.target.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.12)';
-                      }}
-                      onMouseOut={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                        border: '1px solid #e5e7eb',
+                        opacity: 1,
+                        position: 'relative',
+                        overflow: 'hidden'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                        <span style={{ 
-                          fontSize: '16px', 
-                          fontWeight: '700', 
-                          color: '#333',
-                          flex: 1,
-                          marginRight: '10px'
-                        }}>
-                          {campaign.name}
-                        </span>
+                      <div style={{ 
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '4px',
+                        background: campaign.status === 'ACTIVE' 
+                          ? 'linear-gradient(90deg, #4ade80, #22c55e)' 
+                          : 'linear-gradient(90deg, #f87171, #ef4444)',
+                        borderRadius: '16px 16px 0 0'
+                      }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px', marginTop: '8px' }}>
+                        <div style={{ flex: 1, marginRight: '15px' }}>
+                          <span style={{ 
+                            fontSize: '18px', 
+                            fontWeight: '700', 
+                            color: '#1f2937',
+                            display: 'block',
+                            marginBottom: '6px',
+                            lineHeight: '1.4'
+                          }}>
+                            {campaign.name}
+                          </span>
+                          <span style={{
+                            fontSize: '13px',
+                            color: '#6b7280',
+                            fontWeight: '500'
+                          }}>
+                            ID: {campaign.id}
+                          </span>
+                        </div>
                       <span
                         style={{
                             fontSize: '12px',
-                            fontWeight: '600',
-                            color: campaign.status === 'ACTIVE' ? '#28a745' : '#dc3545',
-                            padding: '4px 8px',
-                            borderRadius: '12px',
-                            backgroundColor: campaign.status === 'ACTIVE' ? '#d4edda' : '#f8d7da',
-                            whiteSpace: 'nowrap'
+                            fontWeight: '700',
+                            color: campaign.status === 'ACTIVE' ? '#059669' : '#dc2626',
+                            padding: '6px 12px',
+                            borderRadius: '20px',
+                            background: campaign.status === 'ACTIVE' 
+                              ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)' 
+                              : 'linear-gradient(135deg, #fee2e2, #fecaca)',
+                            border: campaign.status === 'ACTIVE' 
+                              ? '1px solid #a7f3d0' 
+                              : '1px solid #fecaca',
+                            whiteSpace: 'nowrap',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
                           }}
                         >
                           {campaign.status}
@@ -1554,12 +1687,21 @@ export default function HomePage() {
                     </div>
                       <div style={{ 
                         fontSize: '14px', 
-                        color: '#666',
-                        backgroundColor: '#f8f9fa',
-                        padding: '8px 12px',
-                        borderRadius: '6px'
+                        color: '#4b5563',
+                        background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        fontWeight: '500'
                       }}>
-                        <strong>Objective:</strong> {campaign.objective}
+                        <span style={{ 
+                          fontWeight: '700', 
+                          color: '#374151',
+                          marginRight: '8px'
+                        }}>
+                          Objective:
+                        </span>
+                        {campaign.objective}
                       </div>
                     </div>
                   ))}
@@ -1568,12 +1710,26 @@ export default function HomePage() {
               ) : (
                 <div style={{
                   textAlign: 'center',
-                  padding: '40px',
-                  backgroundColor: '#f8f9fa',
-                  borderRadius: '12px',
-                  color: '#666'
+                  padding: '60px 40px',
+                  background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+                  borderRadius: '16px',
+                  color: '#6b7280',
+                  border: '2px dashed #d1d5db'
                 }}>
-                  <p>No campaigns found for this ad account.</p>
+                  <div style={{
+                    fontSize: '48px',
+                    marginBottom: '16px',
+                    opacity: '0.5'
+                  }}>
+                    📊
+                  </div>
+                  <p style={{
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    margin: 0
+                  }}>
+                    No campaigns found for this ad account.
+                  </p>
             </div>
           )}
             </div>

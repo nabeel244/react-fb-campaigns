@@ -172,3 +172,81 @@ a {
   border-top: 1px solid #ddd;
   margin: 16px 0;
 }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .ad-accounts-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  .campaigns-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  .header-container {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  
+  .header-title {
+    font-size: 24px !important;
+  }
+  
+  .card-padding {
+    padding: 20px !important;
+  }
+  
+  .card-content {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  
+  .card-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 16px !important;
+  }
+  
+  .card-title {
+    font-size: 18px !important;
+  }
+  
+  .card-subtitle {
+    font-size: 12px !important;
+  }
+  
+  .status-badge {
+    font-size: 11px !important;
+    padding: 6px 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-container {
+    padding: 16px !important;
+  }
+  
+  .header-container {
+    padding: 20px !important;
+  }
+  
+  .card-padding {
+    padding: 16px !important;
+  }
+  
+  .header-title {
+    font-size: 20px !important;
+  }
+  
+  .card-title {
+    font-size: 16px !important;
+  }
+  
+  .campaigns-section {
+    padding: 20px !important;
+  }
+}
