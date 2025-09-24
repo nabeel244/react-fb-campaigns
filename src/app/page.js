@@ -88,7 +88,7 @@ export default function HomePage() {
 
       console.log('Sending message to Python streaming API:', chatPayload);
 
-      const response = await fetch('https://16.16.70.213/api/chat/stream', {
+      const response = await fetch('https://adrunners.ai/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -355,7 +355,7 @@ export default function HomePage() {
 
           console.log('Sending data to Python API:', pythonApiPayload);
 
-          const pythonResponse = await fetch('https://16.16.70.213/api/data/upload', {
+          const pythonResponse = await fetch('https://adrunners.ai/api/data/upload', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
