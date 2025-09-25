@@ -38,7 +38,7 @@ export default function HomePage() {
   const [isTyping, setIsTyping] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(null);
-  const scrollTimeoutRef = useRef(null);
+  // Removed scroll management - using SimpleChat component
 
 
   // Streaming send message function
@@ -48,41 +48,40 @@ export default function HomePage() {
     const message = textareaRef.current.value.trim();
     if (!message) return;
 
-    // Add user message
-    const newMessage = {
-      id: Date.now(),
-      type: 'user',
-      message: message,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, newMessage]);
-    
-    // Scroll to bottom when user sends message
-    setTimeout(() => scrollToBottom(), 10);
+     // Add user message
+     const newMessage = {
+       id: Date.now(),
+       type: 'user',
+       message: message,
+       timestamp: new Date()
+     };
+     setMessages(prev => [...prev, newMessage]);
+     
+    // No scroll - let SimpleChat handle it
     
     // Clear input
     textareaRef.current.value = '';
     setIsTyping(true);
 
-    // Add initial bot message for streaming
-    const botMessageId = Date.now() + 1;
-    const initialBotMessage = {
-      id: botMessageId,
-      type: 'bot',
-      message: '',
-      timestamp: new Date(),
-      isStreaming: true
-    };
-    setMessages(prev => [...prev, initialBotMessage]);
+     // Add initial bot message for streaming
+     const botMessageId = Date.now() + 1;
+     const initialBotMessage = {
+       id: botMessageId,
+       type: 'bot',
+       message: '',
+       timestamp: new Date(),
+       isStreaming: true
+     };
+     setMessages(prev => [...prev, initialBotMessage]);
     
-    // Scroll to bottom when bot message is added
-    setTimeout(() => scrollToBottom(), 10);
+    // No scroll - let SimpleChat handle it
 
     try {
       // Call Python chatbot streaming API
       const chatPayload = {
         message: message,
         user_id: "anonymous",
+        prompt_type: "executive",
         timestamp: new Date().toISOString()
       };
 
@@ -114,18 +113,17 @@ export default function HomePage() {
                 try {
                   const data = JSON.parse(line.slice(6));
                   
-                   if (data.text) {
-                     // Replace entire message content like Python chatbot
-                     setMessages(prev => 
-                       prev.map(msg => 
-                         msg.id === botMessageId 
-                           ? { ...msg, message: data.text, isStreaming: true }
-                           : msg
-                       )
-                     );
-                     // Scroll to bottom during streaming to keep chat at bottom
-                     setTimeout(() => scrollToBottom(), 10);
-                   }
+                    if (data.text) {
+                      // Replace entire message content like Python chatbot
+                      setMessages(prev => 
+                        prev.map(msg => 
+                          msg.id === botMessageId 
+                            ? { ...msg, message: data.text, isStreaming: true }
+                            : msg
+                        )
+                      );
+                     // No scroll during streaming - let SimpleChat handle it
+                    }
                   
                    if (data.done) {
                      // Mark streaming as complete
@@ -136,8 +134,7 @@ export default function HomePage() {
                            : msg
                        )
                      );
-                     // Final scroll to bottom when streaming is complete
-                     setTimeout(() => scrollToBottom(), 10);
+                     // No scroll - let SimpleChat handle it
                      break;
                    }
                 } catch (parseError) {
@@ -198,36 +195,11 @@ export default function HomePage() {
   useEffect(() => {
     if (isChatOpen && textareaRef.current) {
       textareaRef.current.focus();
-      // Scroll to bottom when chat opens
-      setTimeout(() => scrollToBottom(), 100);
+      // No scroll - let SimpleChat handle it
     }
   }, [isChatOpen]);
 
-  // Simple scroll to bottom function
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-    }
-  };
-
-  // Auto-scroll to bottom whenever messages change
-  useEffect(() => {
-    // Always scroll to bottom when messages change (including during streaming)
-    const timeoutId = setTimeout(() => {
-      scrollToBottom();
-    }, 50);
-    
-    return () => clearTimeout(timeoutId);
-  }, [messages]); // Trigger on any message change
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, []);
+  // Removed all scroll functions - using SimpleChat component for scroll management
 
  
 
@@ -373,16 +345,16 @@ export default function HomePage() {
           console.error('Error sending data to Python API:', pythonError);
         }
         
-         // Open chatbot and create new chat session
-         const newChatId = Date.now().toString();
-         setCurrentChatId(newChatId);
-         setMessages([{
-           id: 1,
-           type: 'bot',
-           message: data.campaign_name,
-           timestamp: new Date()
-         }]);
-         setIsChatOpen(true);
+          // Open chatbot and create new chat session
+          const newChatId = Date.now().toString();
+          setCurrentChatId(newChatId);
+          setMessages([{
+            id: 1,
+            type: 'bot',
+            message: data.campaign_name,
+            timestamp: new Date()
+          }]);
+          setIsChatOpen(true);
       }
     } catch (err) {
         setError("Error fetching campaign insights");
@@ -402,11 +374,11 @@ export default function HomePage() {
     setIsChatOpen(!isChatOpen);
   };
 
-  const closeChat = () => {
-    setIsChatOpen(false);
-    setMessages([]);
-    setCurrentChatId(null);
-  };
+   const closeChat = () => {
+     setIsChatOpen(false);
+     setMessages([]);
+     setCurrentChatId(null);
+   };
 
   const startNewChat = () => {
     const newChatId = Date.now().toString();
@@ -496,7 +468,10 @@ export default function HomePage() {
   // Convert inline tables to HTML like Python chatbot
   const convertInlineTablesDirectly = (content) => {
     try {
+      // Only log once per conversion to reduce console spam
+      if (Math.random() < 0.1) { // Only log 10% of the time
       console.log('Converting inline tables directly to HTML...');
+      }
       
       let result = content;
       
@@ -535,7 +510,10 @@ export default function HomePage() {
   // Generate HTML table from text data
   const generateHTMLTable = (tableText, title, expectedHeaders) => {
     try {
+      // Only log once per table generation to reduce console spam
+      if (Math.random() < 0.1) { // Only log 10% of the time
       console.log(`Generating HTML table for: ${title}`);
+      }
       
       // Extract all pipe-separated values
       let parts = tableText.split('|').map(p => p.trim()).filter(p => p !== '' && p !== title);
@@ -610,8 +588,11 @@ export default function HomePage() {
   const cleanStreamingText = (text) => {
     if (!text) return '';
     
-    // Step 1: Convert inline tables to HTML
-    let processedContent = convertInlineTablesDirectly(text);
+    // Step 1: Convert inline tables to HTML (only if text contains table patterns and is substantial)
+    let processedContent = text;
+    if (text.length > 100 && (text.includes('Platform Breakdown') || text.includes('Daily Insights') || text.includes('Demographics'))) {
+      processedContent = convertInlineTablesDirectly(text);
+    }
     
     // Step 2: Simple text cleaning and formatting
     let cleaned = processedContent
@@ -954,23 +935,23 @@ export default function HomePage() {
           flexDirection: 'column',
           height: '100%'
         }}>
-           {/* Messages Area */}
-           <div 
-             ref={messagesContainerRef}
-             style={{
-               flex: 1,
-               overflowY: 'auto',
-               padding: '30px',
-               background: 'rgba(255, 255, 255, 0.1)',
+            {/* Messages Area */}
+            <div 
+              ref={messagesContainerRef}
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '30px',
+                background: 'rgba(255, 255, 255, 0.1)',
                backdropFilter: 'blur(10px)'
-             }}
-           >
-             {messages.map((message) => (
-               <ChatMessage key={message.id} message={message} />
-             ))}
-             {isTyping && <TypingIndicator />}
-             <div ref={messagesEndRef} />
-           </div>
+              }}
+            >
+              {messages.map((message) => (
+                <ChatMessage key={message.id} message={message} />
+              ))}
+              {isTyping && <TypingIndicator />}
+              <div ref={messagesEndRef} />
+            </div>
 
           {/* Input Area */}
           <div style={{
