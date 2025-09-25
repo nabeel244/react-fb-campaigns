@@ -111,34 +111,69 @@ export default function HomePage() {
             for (const line of lines) {
               if (line.startsWith('data: ')) {
                 try {
-                  const data = JSON.parse(line.slice(6));
+                  const jsonString = line.slice(6).trim();
                   
-                    if (data.text) {
-                      // Replace entire message content like Python chatbot
-                      setMessages(prev => 
-                        prev.map(msg => 
-                          msg.id === botMessageId 
-                            ? { ...msg, message: data.text, isStreaming: true }
-                            : msg
-                        )
-                      );
-                     // No scroll during streaming - let SimpleChat handle it
-                    }
+                  // Skip empty lines or malformed JSON
+                  if (!jsonString || jsonString === '') {
+                    continue;
+                  }
                   
-                   if (data.done) {
-                     // Mark streaming as complete
-                     setMessages(prev => 
-                       prev.map(msg => 
-                         msg.id === botMessageId 
-                           ? { ...msg, isStreaming: false }
-                           : msg
-                       )
-                     );
-                     // No scroll - let SimpleChat handle it
-                     break;
-                   }
+                  // Check if JSON string is complete (basic validation)
+                  if (!jsonString.endsWith('}') && !jsonString.endsWith(']')) {
+                    console.warn('Incomplete JSON received, skipping:', jsonString);
+                    continue;
+                  }
+                  
+                  const data = JSON.parse(jsonString);
+                  
+                  if (data.text) {
+                    // Replace entire message content like Python chatbot
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === botMessageId 
+                          ? { ...msg, message: data.text, isStreaming: true }
+                          : msg
+                      )
+                    );
+                    // No scroll during streaming - let SimpleChat handle it
+                  }
+                
+                 if (data.done) {
+                   // Mark streaming as complete
+                   setMessages(prev => 
+                     prev.map(msg => 
+                       msg.id === botMessageId 
+                         ? { ...msg, isStreaming: false }
+                         : msg
+                     )
+                   );
+                   // No scroll - let SimpleChat handle it
+                   break;
+                 }
                 } catch (parseError) {
                   console.error('Error parsing SSE data:', parseError);
+                  console.error('Problematic JSON string:', line.slice(6));
+                  
+                  // If JSON parsing fails, try to extract text manually
+                  const jsonString = line.slice(6).trim();
+                  if (jsonString.includes('"text"')) {
+                    try {
+                      // Try to extract text content manually
+                      const textMatch = jsonString.match(/"text":\s*"([^"]*)/);
+                      if (textMatch && textMatch[1]) {
+                        const extractedText = textMatch[1];
+                        setMessages(prev => 
+                          prev.map(msg => 
+                            msg.id === botMessageId 
+                              ? { ...msg, message: msg.message + extractedText }
+                              : msg
+                          )
+                        );
+                      }
+                    } catch (extractError) {
+                      console.error('Failed to extract text manually:', extractError);
+                    }
+                  }
                 }
               }
             }
