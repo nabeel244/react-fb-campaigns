@@ -4,9 +4,131 @@ import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
+// ===== CONFIGURATION =====
+// Change this URL to switch between production and localhost
+// const API_BASE_URL = "https://adrunners.ai"; // Production URL
+const API_BASE_URL = "http://localhost:8000"; // Localhost URL (uncomment to use)
+// =========================
+
 export default function HomePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  
+  // Check for existing auth data on component load
+  useEffect(() => {
+    const storedAuth = getStoredAuthData();
+    if (storedAuth) {
+      if (isTokenValid(storedAuth)) {
+        console.log("✅ Valid stored auth token found");
+      } else {
+        console.log("⏰ Stored auth token has expired, clearing localStorage");
+        localStorage.removeItem('userAuth');
+      }
+    }
+  }, []);
+
+  // Console log Facebook auth token and call login API
+  useEffect(() => {
+    if (session?.accessToken) {
+      console.log("🔑 Facebook Access Token:", session.accessToken);
+      console.log("📊 Full Session Data:", session);
+      
+      // Call the Facebook login API
+      callFacebookLoginAPI(session.accessToken);
+    } else if (status === "unauthenticated") {
+      console.log("❌ No Facebook token - User not authenticated");
+    } else if (status === "loading") {
+      console.log("⏳ Loading Facebook authentication...");
+    }
+  }, [session, status]);
+
+  // Helper function to get stored auth data
+  const getStoredAuthData = () => {
+    try {
+      const authData = localStorage.getItem('userAuth');
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        console.log("📋 Retrieved stored auth data:", {
+          user: parsed.user,
+          token: parsed.access_token?.substring(0, 20) + "...",
+          expires_in: parsed.expires_in
+        });
+        return parsed;
+      }
+    } catch (error) {
+      console.error("❌ Error retrieving stored auth data:", error);
+    }
+    return null;
+  };
+
+  // Helper function to check if token is still valid
+  const isTokenValid = (authData) => {
+    if (!authData || !authData.loginTime || !authData.expires_in) {
+      return false;
+    }
+    
+    const loginTime = new Date(authData.loginTime);
+    const expirationTime = new Date(loginTime.getTime() + (authData.expires_in * 1000));
+    const now = new Date();
+    
+    return now < expirationTime;
+  };
+
+  // Logout handler that clears localStorage and signs out
+  const handleLogout = () => {
+    console.log("🚪 Logging out - clearing stored auth data...");
+    
+    // Clear the stored auth data from localStorage
+    localStorage.removeItem('userAuth');
+    
+    console.log("✅ Auth data cleared from localStorage");
+    
+    // Sign out from NextAuth
+    signOut();
+  };
+
+  // Function to call Python API for Facebook login
+  const callFacebookLoginAPI = async (accessToken) => {
+    try {
+      console.log("🚀 Calling Python API for Facebook login...");
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/facebook/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessToken: accessToken
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Python API Facebook login success:", data);
+        
+        // Save the response to localStorage for future API authorization
+        localStorage.setItem('userAuth', JSON.stringify({
+          user: data.user,
+          access_token: data.access_token,
+          token_type: data.token_type,
+          expires_in: data.expires_in,
+          loginTime: new Date().toISOString()
+        }));
+        
+        console.log("💾 Auth data saved to localStorage:", {
+          user: data.user,
+          token: data.access_token.substring(0, 20) + "...",
+          expires_in: data.expires_in
+        });
+        
+      } else {
+        const errorData = await response.json();
+        console.error("❌ Python API Facebook login error:", errorData);
+      }
+    } catch (error) {
+      console.error("❌ Error calling Python API:", error);
+    }
+  };
   
   // State management
   const [adAccounts, setAdAccounts] = useState([]);
@@ -77,21 +199,34 @@ export default function HomePage() {
     // No scroll - let SimpleChat handle it
 
     try {
+      // Get stored auth data for user ID and token
+      const authData = getStoredAuthData();
+      
       // Call Python chatbot streaming API
       const chatPayload = {
         message: message,
-        user_id: "anonymous",
+        user_id: authData?.user?.id || "anonymous", // Use stored user ID or fallback to anonymous
         prompt_type: "executive",
         timestamp: new Date().toISOString()
       };
 
       console.log('Sending message to Python streaming API:', chatPayload);
 
-      const response = await fetch('https://adrunners.ai/api/chat/stream', {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if token is available and valid
+      if (authData && isTokenValid(authData)) {
+        headers['Authorization'] = `Bearer ${authData.access_token}`;
+        console.log('🔐 Using stored auth token for chat streaming');
+      } else {
+        console.warn('⚠️ No valid auth token found for chat streaming');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify(chatPayload)
       });
 
@@ -362,11 +497,23 @@ export default function HomePage() {
 
           console.log('Sending data to Python API:', pythonApiPayload);
 
-          const pythonResponse = await fetch('https://adrunners.ai/api/data/upload', {
+          // Get stored auth token for authorization
+          const authData = getStoredAuthData();
+          const headers = {
+            'Content-Type': 'application/json',
+          };
+
+          // Add authorization header if token is available and valid
+          if (authData && isTokenValid(authData)) {
+            headers['Authorization'] = `Bearer ${authData.access_token}`;
+            console.log('🔐 Using stored auth token for data upload');
+          } else {
+            console.warn('⚠️ No valid auth token found for data upload');
+          }
+
+          const pythonResponse = await fetch(`${API_BASE_URL}/api/data/upload`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: headers,
             body: JSON.stringify(pythonApiPayload)
           });
 
@@ -1106,7 +1253,7 @@ export default function HomePage() {
               Facebook Ad Accounts
             </h1>
           <button
-            onClick={() => signOut()}
+            onClick={handleLogout}
             style={{
               background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
               color: 'white',
