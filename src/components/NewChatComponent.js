@@ -396,8 +396,42 @@ const NewChatComponent = ({
     }
   };
 
-  const clearChat = () => {
-    setMessages([]);
+  const clearChat = async () => {
+    try {
+      console.log('🗑️ Clearing chat and calling clear API...');
+      
+      // Get stored auth data for authorization
+      const authData = getStoredAuthData();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if token is available and valid
+      if (authData && isTokenValid(authData)) {
+        headers['Authorization'] = `Bearer ${authData.access_token}`;
+        console.log('🔐 Using stored auth token for clear API');
+      } else {
+        console.warn('⚠️ No valid auth token found for clear API');
+      }
+
+      // Call the clear API
+      const clearResponse = await fetch(`${API_BASE_URL}/api/data/clear`, {
+        method: 'DELETE',
+        headers: headers
+      });
+
+      if (clearResponse.ok) {
+        const clearData = await clearResponse.json();
+        console.log('✅ Chat cleared successfully:', clearData);
+      } else {
+        console.error('❌ Failed to clear chat:', clearResponse.statusText);
+      }
+    } catch (error) {
+      console.error('❌ Error calling clear API:', error);
+    } finally {
+      // Always clear the local messages regardless of API success/failure
+      setMessages([]);
+    }
   };
 
   const startNewChat = () => {
