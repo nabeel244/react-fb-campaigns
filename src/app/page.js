@@ -504,17 +504,65 @@ export default function HomePage() {
             console.warn('⚠️ No valid auth token found for data upload');
           }
 
-          const pythonResponse = await fetch(`${API_BASE_URL}/api/data/upload`, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(pythonApiPayload)
+          // First, check if campaign exists
+          console.log(`🔍 Checking if campaign ${campaign.id} exists...`);
+          const checkResponse = await fetch(`${API_BASE_URL}/api/data/campaigns/${campaign.id}`, {
+            method: 'GET',
+            headers: headers
           });
 
-          if (pythonResponse.ok) {
-            const pythonData = await pythonResponse.json();
-            console.log('Campaign data successfully sent to Python API:', pythonData);
+          if (checkResponse.ok) {
+            // Campaign exists, update it with PUT
+            console.log(`✅ Campaign ${campaign.id} exists, updating...`);
+            const updateResponse = await fetch(`${API_BASE_URL}/api/data/campaigns/${campaign.id}`, {
+              method: 'PUT',
+              headers: headers,
+              body: JSON.stringify(pythonApiPayload)
+            });
+
+            if (updateResponse.ok) {
+              const updateData = await updateResponse.json();
+              console.log('Campaign data successfully updated in Python API:', updateData);
+            } else {
+              console.error('Failed to update campaign data in Python API:', updateResponse.statusText);
+            }
+          } else if (checkResponse.status === 500) {
+            // Check if it's the specific "Campaign not found" error
+            const errorData = await checkResponse.json();
+            if (errorData.detail && errorData.detail.includes("Campaign not found")) {
+              console.log(`❌ Campaign ${campaign.id} not found, creating new...`);
+              // Campaign doesn't exist, create it with POST
+              const createResponse = await fetch(`${API_BASE_URL}/api/data/upload?campaign_id=${campaign.id}`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(pythonApiPayload)
+              });
+
+              if (createResponse.ok) {
+                const createData = await createResponse.json();
+                console.log('Campaign data successfully created in Python API:', createData);
+              } else {
+                console.error('Failed to create campaign data in Python API:', createResponse.statusText);
+              }
+            } else {
+              console.error('Unexpected error checking campaign:', errorData);
+            }
           } else {
-            console.error('Failed to send data to Python API:', pythonResponse.statusText);
+            console.error('Failed to check campaign existence:', checkResponse.statusText);
+            // Fallback to creating new campaign
+            console.log('🔄 Fallback: Creating new campaign...');
+            const createResponse = await fetch(`${API_BASE_URL}/api/data/upload?campaign_id=${campaign.id}`, {
+              method: 'POST',
+              headers: headers,
+              body: JSON.stringify(pythonApiPayload)
+            });
+
+            if (createResponse.ok) {
+              const createData = await createResponse.json();
+              console.log('Campaign data successfully created in Python API (fallback):', createData);
+            } else {
+              console.error('Failed to create campaign data in Python API (fallback):', createResponse.statusText);
+            }
           }
         } catch (pythonError) {
           console.error('Error sending data to Python API:', pythonError);
