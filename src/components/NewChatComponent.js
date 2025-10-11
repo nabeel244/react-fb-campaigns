@@ -6,17 +6,35 @@ import ReactMarkdown from 'react-markdown';
 // Configuration - Change this URL as needed
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
-  const [messages, setMessages] = useState([]);
-  const [isTyping, setIsTyping] = useState(false);
+const NewChatComponent = ({ 
+  isOpen, 
+  onClose, 
+  campaignData, 
+  messages, 
+  setMessages, 
+  isTyping, 
+  setIsTyping, 
+  currentChatId, 
+  setCurrentChatId, 
+  chatHistory, 
+  setChatHistory, 
+  hasLoadedConversations, 
+  setHasLoadedConversations 
+}) => {
   const [inputValue, setInputValue] = useState('');
-  const [chatHistory, setChatHistory] = useState([]);
-  const [currentChatId, setCurrentChatId] = useState(null);
   const inputRef = useRef(null);
 
-  // Initialize with welcome message when component mounts
+  // Debug: Log messages when they change
   useEffect(() => {
-    if (messages.length === 0) {
+    console.log('NewChatComponent - Messages updated:', messages);
+    console.log('NewChatComponent - hasLoadedConversations:', hasLoadedConversations);
+  }, [messages, hasLoadedConversations]);
+
+  // Initialize with welcome message when component mounts (only if no conversations loaded)
+  useEffect(() => {
+    console.log('NewChatComponent useEffect - messages.length:', messages.length, 'hasLoadedConversations:', hasLoadedConversations);
+    if (messages.length === 0 && !hasLoadedConversations) {
+      console.log('Setting default welcome message');
       setMessages([{
         id: 1,
         type: 'bot',
@@ -26,8 +44,12 @@ const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
         timestamp: new Date(),
         isStreaming: false
       }]);
+    } else if (messages.length === 0 && hasLoadedConversations) {
+      console.log('Conversations were loaded but no messages found - this might be an error');
+    } else {
+      console.log('Skipping default message - messages exist or conversations loaded');
     }
-  }, [campaignData]);
+  }, [campaignData, hasLoadedConversations]);
 
   // Focus input when chat opens
   useEffect(() => {
@@ -260,9 +282,9 @@ const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
       // Call Python chatbot streaming API
       const chatPayload = {
         message: inputValue.trim(),
-        user_id: authData?.user?.id || "anonymous", // Use stored user ID or fallback to anonymous
         prompt_type: "executive",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        campaign_id: campaignData?.campaign_id || null
       };
 
       console.log('Sending message to Python streaming API:', chatPayload);
