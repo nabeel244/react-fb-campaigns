@@ -422,8 +422,12 @@ export default function HomePage() {
     try {
       setLoading(prev => ({ ...prev, campaignDetails: true }));
       setError("");
-      setHasLoadedConversations(false); // Reset conversation flag for new campaign
+      // Reset all chat-related state for new campaign
+      setHasLoadedConversations(false);
+      setMessages([]); // Clear previous messages
       setCurrentCampaignId(campaign.id); // Store the clicked campaign ID
+      console.log('🎯 Campaign clicked - ID:', campaign.id, 'Name:', campaign.name);
+      console.log('🔄 Reset conversation state for new campaign');
       
       const response = await fetch(`/api/facebook/singleCampaing?adAccountId=${selectedAccount}&campaignId=${campaign.id}`);
       const data = await response.json();
@@ -568,7 +572,9 @@ export default function HomePage() {
                       // Store messages to be loaded when chat opens
                       setMessages(allMessages);
                       setHasLoadedConversations(true);
-                      console.log('Previous conversations loaded into chat:', allMessages);
+                      console.log('✅ Previous conversations loaded for campaign', campaign.id, ':', allMessages);
+                    } else {
+                      console.log('ℹ️ No previous conversations found for campaign', campaign.id);
                     }
                   }
                 } else {
@@ -1286,13 +1292,15 @@ export default function HomePage() {
       {status === "loading" ? (
         <LoadingSpinner size="large" />
       ) : isChatOpen ? (
-        <NewChatComponent 
-          isOpen={isChatOpen} 
-          onClose={() => setIsChatOpen(false)} 
-          campaignData={{
-            ...selectedCampaignMetrics,
-            campaign_id: currentCampaignId
-          }}
+        <>
+          {console.log('🔍 Passing to NewChatComponent - currentCampaignId:', currentCampaignId, 'selectedCampaignMetrics:', selectedCampaignMetrics)}
+          <NewChatComponent 
+            isOpen={isChatOpen} 
+            onClose={() => setIsChatOpen(false)} 
+            campaignData={{
+              ...selectedCampaignMetrics,
+              campaign_id: currentCampaignId
+            }}
           messages={messages}
           setMessages={setMessages}
           isTyping={isTyping}
@@ -1304,6 +1312,7 @@ export default function HomePage() {
           hasLoadedConversations={hasLoadedConversations}
           setHasLoadedConversations={setHasLoadedConversations}
         />
+        </>
       ) : (
         <>
           {/* Header */}

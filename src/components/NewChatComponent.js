@@ -286,6 +286,8 @@ const NewChatComponent = ({
         timestamp: new Date().toISOString(),
         campaign_id: campaignData?.campaign_id || null
       };
+      
+      console.log('💬 Chat payload - campaign_id:', campaignData?.campaign_id, 'campaignData:', campaignData);
 
       console.log('Sending message to Python streaming API:', chatPayload);
 
