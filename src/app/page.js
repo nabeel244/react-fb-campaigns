@@ -3,6 +3,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import NewChatComponent from "@/components/NewChatComponent";
 
 // ===== CONFIGURATION =====
 // Change this URL to switch between production and localhost
@@ -149,8 +150,6 @@ export default function HomePage() {
   
   // Refs
   const textareaRef = useRef(null);
-  const messagesEndRef = useRef(null);
-  const messagesContainerRef = useRef(null);
 
 
   
@@ -178,8 +177,6 @@ export default function HomePage() {
        timestamp: new Date()
      };
      setMessages(prev => [...prev, newMessage]);
-     
-    // No scroll - let SimpleChat handle it
     
     // Clear input
     textareaRef.current.value = '';
@@ -195,8 +192,6 @@ export default function HomePage() {
        isStreaming: true
      };
      setMessages(prev => [...prev, initialBotMessage]);
-    
-    // No scroll - let SimpleChat handle it
 
     try {
       // Get stored auth data for user ID and token
@@ -270,7 +265,7 @@ export default function HomePage() {
                           : msg
                       )
                     );
-                    // No scroll during streaming - let SimpleChat handle it
+                    // No scrolling during streaming
                   }
                 
                  if (data.done) {
@@ -282,7 +277,6 @@ export default function HomePage() {
                          : msg
                      )
                    );
-                   // No scroll - let SimpleChat handle it
                    break;
                  }
                 } catch (parseError) {
@@ -361,15 +355,14 @@ export default function HomePage() {
     }
   }, [status, router]);
 
-  // Simple focus when chat opens
+  // Focus input when chat opens
   useEffect(() => {
     if (isChatOpen && textareaRef.current) {
       textareaRef.current.focus();
-      // No scroll - let SimpleChat handle it
     }
   }, [isChatOpen]);
 
-  // Removed all scroll functions - using SimpleChat component for scroll management
+  // No scroll management - natural scrolling
 
  
 
@@ -1119,20 +1112,18 @@ export default function HomePage() {
         }}>
             {/* Messages Area */}
             <div 
-              ref={messagesContainerRef}
               style={{
                 flex: 1,
                 overflowY: 'auto',
                 padding: '30px',
                 background: 'rgba(255, 255, 255, 0.1)',
-               backdropFilter: 'blur(10px)'
+                backdropFilter: 'blur(10px)'
               }}
             >
               {messages.map((message) => (
                 <ChatMessage key={message.id} message={message} />
               ))}
               {isTyping && <TypingIndicator />}
-              <div ref={messagesEndRef} />
             </div>
 
           {/* Input Area */}
@@ -1223,7 +1214,11 @@ export default function HomePage() {
       {status === "loading" ? (
         <LoadingSpinner size="large" />
       ) : isChatOpen ? (
-        <ChatbotInterface />
+        <NewChatComponent 
+          isOpen={isChatOpen} 
+          onClose={() => setIsChatOpen(false)} 
+          campaignData={selectedCampaignMetrics}
+        />
       ) : (
         <>
           {/* Header */}
