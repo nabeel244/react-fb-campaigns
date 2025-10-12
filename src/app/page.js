@@ -77,12 +77,37 @@ export default function HomePage() {
 
   // Logout handler that clears localStorage and signs out
   const handleLogout = () => {
-    console.log("🚪 Logging out - clearing stored auth data...");
+    console.log("🚪 Logging out - clearing all stored data...");
     
-    // Clear the stored auth data from localStorage
-    localStorage.removeItem('userAuth');
+    // Clear all localStorage data
+    localStorage.clear();
     
-    console.log("✅ Auth data cleared from localStorage");
+    // Reset all chat-related state
+    setMessages([]);
+    setIsTyping(false);
+    setChatHistory([]);
+    setCurrentChatId(null);
+    setHasLoadedConversations(false);
+    setCurrentCampaignId(null);
+    
+    // Reset campaign and account state
+    setAdAccounts([]);
+    setCampaigns([]);
+    setSelectedAccount(null);
+    setSelectedCampaignMetrics(null);
+    setIsModalOpen(false);
+    
+    // Reset loading states
+    setLoading({
+      adAccounts: true,
+      campaigns: false,
+      campaignDetails: false
+    });
+    
+    // Clear error state
+    setError("");
+    
+    console.log("✅ All data cleared from localStorage and state reset");
     
     // Sign out from NextAuth
     signOut();
