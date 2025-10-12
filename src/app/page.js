@@ -8,7 +8,9 @@ import NewChatComponent from "@/components/NewChatComponent";
 // ===== CONFIGURATION =====
 // Change this URL to switch between production and localhost
 // const API_BASE_URL = "https://adrunners.ai"; // Production URL
-const API_BASE_URL = "http://localhost:8000"; // Localhost URL (uncomment to use)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+// const API_BASE_URL = "http://localhost:8000"; // Localhost URL (uncomment to use)
 // =========================
 
 export default function HomePage() {
