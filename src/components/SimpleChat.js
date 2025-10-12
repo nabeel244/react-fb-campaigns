@@ -57,7 +57,6 @@ const SimpleChat = ({ isOpen, onClose, campaignData }) => {
         },
         body: JSON.stringify({
           message: input.trim(),
-          user_id: "anonymous",
           timestamp: new Date().toISOString()
         })
       });

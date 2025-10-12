@@ -6,17 +6,38 @@ import ReactMarkdown from 'react-markdown';
 // Configuration - Change this URL as needed
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
-  const [messages, setMessages] = useState([]);
-  const [isTyping, setIsTyping] = useState(false);
+const NewChatComponent = ({ 
+  isOpen, 
+  onClose, 
+  campaignData, 
+  messages, 
+  setMessages, 
+  isTyping, 
+  setIsTyping, 
+  currentChatId, 
+  setCurrentChatId, 
+  chatHistory, 
+  setChatHistory, 
+  hasLoadedConversations, 
+  setHasLoadedConversations 
+}) => {
   const [inputValue, setInputValue] = useState('');
-  const [chatHistory, setChatHistory] = useState([]);
-  const [currentChatId, setCurrentChatId] = useState(null);
+  const [campaigns, setCampaigns] = useState([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
   const inputRef = useRef(null);
 
-  // Initialize with welcome message when component mounts
+  // Debug: Log messages when they change
   useEffect(() => {
-    if (messages.length === 0) {
+    console.log('NewChatComponent - Messages updated:', messages);
+    console.log('NewChatComponent - hasLoadedConversations:', hasLoadedConversations);
+  }, [messages, hasLoadedConversations]);
+
+  // Initialize with welcome message when component mounts (only if no conversations loaded)
+  useEffect(() => {
+    console.log('NewChatComponent useEffect - messages.length:', messages.length, 'hasLoadedConversations:', hasLoadedConversations);
+    if (messages.length === 0 && !hasLoadedConversations) {
+      console.log('Setting default welcome message');
       setMessages([{
         id: 1,
         type: 'bot',
@@ -26,8 +47,12 @@ const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
         timestamp: new Date(),
         isStreaming: false
       }]);
+    } else if (messages.length === 0 && hasLoadedConversations) {
+      console.log('Conversations were loaded but no messages found - this might be an error');
+    } else {
+      console.log('Skipping default message - messages exist or conversations loaded');
     }
-  }, [campaignData]);
+  }, [campaignData, hasLoadedConversations]);
 
   // Focus input when chat opens
   useEffect(() => {
@@ -35,6 +60,154 @@ const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Fetch campaigns when component opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchCampaigns();
+    }
+  }, [isOpen]);
+
+  // Function to fetch campaigns from API
+  const fetchCampaigns = async () => {
+    try {
+      setLoadingCampaigns(true);
+      console.log('📋 Fetching campaigns from API...');
+      
+      // Get stored auth data for authorization
+      const authData = getStoredAuthData();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if token is available and valid
+      if (authData && isTokenValid(authData)) {
+        headers['Authorization'] = `Bearer ${authData.access_token}`;
+        console.log('🔐 Using stored auth token for campaigns API');
+      } else {
+        console.warn('⚠️ No valid auth token found for campaigns API');
+      }
+
+      // Call the campaigns API
+      const campaignsResponse = await fetch(`${API_BASE_URL}/api/data/campaigns`, {
+        method: 'GET',
+        headers: headers
+      });
+
+      if (campaignsResponse.ok) {
+        const campaignsData = await campaignsResponse.json();
+        setCampaigns(campaignsData);
+        console.log('✅ Campaigns fetched successfully:', campaignsData);
+      } else {
+        console.error('❌ Failed to fetch campaigns:', campaignsResponse.statusText);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching campaigns:', error);
+    } finally {
+      setLoadingCampaigns(false);
+    }
+  };
+
+  // Function to handle campaign selection from sidebar
+  const handleCampaignSelect = async (campaign) => {
+    try {
+      console.log('🎯 Campaign selected from sidebar:', campaign);
+      
+      // Set the selected campaign locally
+      setSelectedCampaign(campaign);
+      
+      // Reset conversation state
+      setHasLoadedConversations(false);
+      setMessages([]);
+      
+      // Get stored auth data for authorization
+      const authData = getStoredAuthData();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if token is available and valid
+      if (authData && isTokenValid(authData)) {
+        headers['Authorization'] = `Bearer ${authData.access_token}`;
+        console.log('🔐 Using stored auth token for campaign load');
+      } else {
+        console.warn('⚠️ No valid auth token found for campaign load');
+      }
+
+      // Call load API
+      console.log(`🔄 Loading campaign ${campaign.id} for analysis...`);
+      const loadResponse = await fetch(`${API_BASE_URL}/api/data/campaigns/${campaign.id}/load`, {
+        method: 'POST',
+        headers: headers
+      });
+
+      if (loadResponse.ok) {
+        const loadData = await loadResponse.json();
+        console.log('Campaign loaded successfully:', loadData);
+        
+        // Check if ready for chat
+        if (loadData.ready_for_chat) {
+          console.log(`✅ Campaign ready for chat, fetching conversations...`);
+          
+          // Call conversations API
+          const conversationsResponse = await fetch(`${API_BASE_URL}/api/chat/conversations?campaign_id=${campaign.id}`, {
+            method: 'GET',
+            headers: headers
+          });
+
+          if (conversationsResponse.ok) {
+            const conversationsData = await conversationsResponse.json();
+            console.log('Conversations fetched successfully:', conversationsData);
+            
+            // Process and display messages in chat
+            if (conversationsData && conversationsData.length > 0) {
+              // Get all messages from all conversations and sort by timestamp
+              const allMessages = [];
+              conversationsData.forEach(conversation => {
+                if (conversation.messages && conversation.messages.length > 0) {
+                  conversation.messages.forEach(msg => {
+                    allMessages.push({
+                      id: msg.id,
+                      type: msg.role === 'user' ? 'user' : 'bot',
+                      message: msg.content,
+                      timestamp: new Date(msg.created_at)
+                    });
+                  });
+                }
+              });
+              
+              // Sort messages by timestamp to show them in chronological order
+              allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+              
+              if (allMessages.length > 0) {
+                // Store messages to be loaded when chat opens
+                setMessages(allMessages);
+                setHasLoadedConversations(true);
+                console.log('✅ Previous conversations loaded for campaign', campaign.id, ':', allMessages);
+              } else {
+                console.log('ℹ️ No previous conversations found for campaign', campaign.id);
+              }
+            }
+          } else {
+            console.error('Failed to fetch conversations:', conversationsResponse.statusText);
+          }
+        } else {
+          console.log('Campaign not ready for chat yet');
+        }
+      } else if (loadResponse.status === 500) {
+        const errorData = await loadResponse.json();
+        if (errorData.detail && errorData.detail.includes("Campaign not found")) {
+          console.log('Campaign not found in load API, continuing with fresh chat');
+        } else {
+          console.error('Error loading campaign:', errorData);
+        }
+      } else {
+        console.error('Failed to load campaign:', loadResponse.statusText);
+      }
+    } catch (error) {
+      console.error('Error loading campaign from sidebar:', error);
+    }
+  };
 
   // Convert inline tables to HTML like Python chatbot
   const convertInlineTablesDirectly = (content) => {
@@ -260,10 +433,12 @@ const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
       // Call Python chatbot streaming API
       const chatPayload = {
         message: inputValue.trim(),
-        user_id: authData?.user?.id || "anonymous", // Use stored user ID or fallback to anonymous
         prompt_type: "executive",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        campaign_id: campaignData?.campaign_id || null
       };
+      
+      console.log('💬 Chat payload - campaign_id:', campaignData?.campaign_id, 'campaignData:', campaignData);
 
       console.log('Sending message to Python streaming API:', chatPayload);
 
@@ -372,8 +547,42 @@ const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
     }
   };
 
-  const clearChat = () => {
-    setMessages([]);
+  const clearChat = async () => {
+    try {
+      console.log('🗑️ Clearing chat and calling clear API...');
+      
+      // Get stored auth data for authorization
+      const authData = getStoredAuthData();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if token is available and valid
+      if (authData && isTokenValid(authData)) {
+        headers['Authorization'] = `Bearer ${authData.access_token}`;
+        console.log('🔐 Using stored auth token for clear API');
+      } else {
+        console.warn('⚠️ No valid auth token found for clear API');
+      }
+
+      // Call the clear API
+      const clearResponse = await fetch(`${API_BASE_URL}/api/data/clear`, {
+        method: 'DELETE',
+        headers: headers
+      });
+
+      if (clearResponse.ok) {
+        const clearData = await clearResponse.json();
+        console.log('✅ Chat cleared successfully:', clearData);
+      } else {
+        console.error('❌ Failed to clear chat:', clearResponse.statusText);
+      }
+    } catch (error) {
+      console.error('❌ Error calling clear API:', error);
+    } finally {
+      // Always clear the local messages regardless of API success/failure
+      setMessages([]);
+    }
   };
 
   const startNewChat = () => {
@@ -388,9 +597,9 @@ const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
     }]);
   };
 
-  const ChatHistorySidebar = () => (
+  const CampaignsSidebar = () => (
     <div style={{
-      width: '260px',
+      width: '280px',
       backgroundColor: '#f8f9fa',
       borderRight: '1px solid #e0e0e0',
       display: 'flex',
@@ -406,69 +615,125 @@ const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
         alignItems: 'center'
       }}>
         <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#333' }}>
-          Chat History
+          📊 Campaigns
         </h3>
         <button
-          onClick={startNewChat}
+          onClick={fetchCampaigns}
+          disabled={loadingCampaigns}
           style={{
             background: 'none',
             border: '1px solid #007bff',
             color: '#007bff',
             padding: '6px 12px',
             borderRadius: '6px',
-            cursor: 'pointer',
+            cursor: loadingCampaigns ? 'not-allowed' : 'pointer',
             fontSize: '12px',
-            fontWeight: '500'
+            fontWeight: '500',
+            opacity: loadingCampaigns ? 0.6 : 1
           }}
         >
-          + New Chat
+          {loadingCampaigns ? '⏳' : '🔄'}
         </button>
       </div>
 
-      {/* Chat History List */}
+      {/* Campaigns List */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
         padding: '10px 0'
       }}>
-        {chatHistory.length === 0 ? (
+        {loadingCampaigns ? (
           <div style={{
             padding: '20px',
             textAlign: 'center',
             color: '#666',
             fontSize: '14px'
           }}>
-            No chat history yet
+            <div style={{
+              width: '20px',
+              height: '20px',
+              border: '2px solid #e0e0e0',
+              borderTop: '2px solid #007bff',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 10px'
+            }}></div>
+            Loading campaigns...
+          </div>
+        ) : campaigns.length === 0 ? (
+          <div style={{
+            padding: '20px',
+            textAlign: 'center',
+            color: '#666',
+            fontSize: '14px'
+          }}>
+            No campaigns found
           </div>
         ) : (
-          chatHistory.map((chat) => (
+          campaigns.map((campaign) => (
             <div
-              key={chat.id}
-              onClick={() => setCurrentChatId(chat.id)}
+              key={campaign.id}
+              onClick={() => handleCampaignSelect(campaign)}
               style={{
-                padding: '12px 20px',
+                padding: '16px 20px',
                 cursor: 'pointer',
                 borderBottom: '1px solid #f0f0f0',
-                backgroundColor: currentChatId === chat.id ? '#e3f2fd' : 'transparent',
-                transition: 'background-color 0.2s ease'
+                backgroundColor: selectedCampaign?.id === campaign.id ? '#e3f2fd' : 'transparent',
+                transition: 'background-color 0.2s ease',
+                position: 'relative'
               }}
             >
+              {/* Status indicator */}
+              <div style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: campaign.status === 'active' ? '#28a745' : '#dc3545'
+              }}></div>
+              
               <div style={{
                 fontSize: '14px',
-                fontWeight: '500',
+                fontWeight: '600',
                 color: '#333',
-                marginBottom: '4px',
+                marginBottom: '6px',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                paddingRight: '20px'
               }}>
-                {chat.title}
+                {campaign.campaign_name}
               </div>
+              
               <div style={{
                 fontSize: '12px',
-                color: '#666'
+                color: '#666',
+                marginBottom: '4px'
               }}>
-                {chat.timestamp.toLocaleDateString()}
+                ID: {campaign.id}
+              </div>
+              
+              {campaign.basic_metrics && (
+                <div style={{
+                  fontSize: '11px',
+                  color: '#888',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginTop: '4px'
+                }}>
+                  <span>Spend: ${campaign.basic_metrics.spend?.toFixed(2) || '0'}</span>
+                  <span>Clicks: {campaign.basic_metrics.clicks || '0'}</span>
+                </div>
+              )}
+              
+              <div style={{
+                fontSize: '11px',
+                color: '#888',
+                marginTop: '2px'
+              }}>
+                {new Date(campaign.created_at).toLocaleDateString()}
               </div>
             </div>
           ))
@@ -546,14 +811,16 @@ const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
             }}>
               Facebook Ads AI Assistant
             </h2>
-            <div style={{ 
-              fontSize: '14px', 
-              color: '#6b7280',
-              fontWeight: '500',
-              marginTop: '2px'
-            }}>
-              {campaignData ? `Analyzing: ${campaignData.campaign_name}` : 'Ready to help'}
-            </div>
+                    <div style={{ 
+                      fontSize: '14px', 
+                      color: '#6b7280',
+                      fontWeight: '500',
+                      marginTop: '2px'
+                    }}>
+                      {selectedCampaign?.campaign_name || campaignData?.campaign_name ? 
+                        `Analyzing: ${selectedCampaign?.campaign_name || campaignData?.campaign_name}` : 
+                        'Select a campaign to start'}
+                    </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -602,8 +869,8 @@ const NewChatComponent = ({ isOpen, onClose, campaignData }) => {
         background: 'rgba(255, 255, 255, 0.1)',
         backdropFilter: 'blur(10px)'
       }}>
-        {/* Sidebar */}
-        <ChatHistorySidebar />
+                {/* Sidebar */}
+                <CampaignsSidebar />
 
         {/* Chat Messages */}
         <div style={{

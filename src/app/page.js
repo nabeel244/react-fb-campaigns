@@ -159,6 +159,8 @@ export default function HomePage() {
   const [isTyping, setIsTyping] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(null);
+  const [hasLoadedConversations, setHasLoadedConversations] = useState(false);
+  const [currentCampaignId, setCurrentCampaignId] = useState(null);
   // Removed scroll management - using SimpleChat component
 
 
@@ -200,7 +202,6 @@ export default function HomePage() {
       // Call Python chatbot streaming API
       const chatPayload = {
         message: message,
-        user_id: authData?.user?.id || "anonymous", // Use stored user ID or fallback to anonymous
         prompt_type: "executive",
         timestamp: new Date().toISOString()
       };
@@ -421,6 +422,12 @@ export default function HomePage() {
     try {
       setLoading(prev => ({ ...prev, campaignDetails: true }));
       setError("");
+      // Reset all chat-related state for new campaign
+      setHasLoadedConversations(false);
+      setMessages([]); // Clear previous messages
+      setCurrentCampaignId(campaign.id); // Store the clicked campaign ID
+      console.log('🎯 Campaign clicked - ID:', campaign.id, 'Name:', campaign.name);
+      console.log('🔄 Reset conversation state for new campaign');
       
       const response = await fetch(`/api/facebook/singleCampaing?adAccountId=${selectedAccount}&campaignId=${campaign.id}`);
       const data = await response.json();
@@ -504,17 +511,90 @@ export default function HomePage() {
             console.warn('⚠️ No valid auth token found for data upload');
           }
 
-          const pythonResponse = await fetch(`${API_BASE_URL}/api/data/upload`, {
+          // Send campaign data to upload API
+          console.log(`📤 Uploading campaign ${campaign.id} data...`);
+          const uploadResponse = await fetch(`${API_BASE_URL}/api/data/upload?campaign_id=${campaign.id}`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(pythonApiPayload)
           });
 
-          if (pythonResponse.ok) {
-            const pythonData = await pythonResponse.json();
-            console.log('Campaign data successfully sent to Python API:', pythonData);
+          if (uploadResponse.ok) {
+            const uploadData = await uploadResponse.json();
+            console.log('Campaign data successfully sent to Python API:', uploadData);
+            
+            // Call load API after successful upload
+            console.log(`🔄 Loading campaign ${campaign.id} for analysis...`);
+            const loadResponse = await fetch(`${API_BASE_URL}/api/data/campaigns/${campaign.id}/load`, {
+              method: 'POST',
+              headers: headers
+            });
+
+            if (loadResponse.ok) {
+              const loadData = await loadResponse.json();
+              console.log('Campaign loaded successfully:', loadData);
+              
+              // Check if ready for chat
+              if (loadData.ready_for_chat) {
+                console.log(`✅ Campaign ready for chat, fetching conversations...`);
+                
+                // Call conversations API
+                const conversationsResponse = await fetch(`${API_BASE_URL}/api/chat/conversations?campaign_id=${campaign.id}`, {
+                  method: 'GET',
+                  headers: headers
+                });
+
+                if (conversationsResponse.ok) {
+                  const conversationsData = await conversationsResponse.json();
+                  console.log('Conversations fetched successfully:', conversationsData);
+                  
+                  // Process and display messages in chat
+                  if (conversationsData && conversationsData.length > 0) {
+                    // Get all messages from all conversations and sort by timestamp
+                    const allMessages = [];
+                    conversationsData.forEach(conversation => {
+                      if (conversation.messages && conversation.messages.length > 0) {
+                        conversation.messages.forEach(msg => {
+                          allMessages.push({
+                            id: msg.id,
+                            type: msg.role === 'user' ? 'user' : 'bot',
+                            message: msg.content,
+                            timestamp: new Date(msg.created_at)
+                          });
+                        });
+                      }
+                    });
+                    
+                    // Sort messages by timestamp to show them in chronological order
+                    allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    
+                    if (allMessages.length > 0) {
+                      // Store messages to be loaded when chat opens
+                      setMessages(allMessages);
+                      setHasLoadedConversations(true);
+                      console.log('✅ Previous conversations loaded for campaign', campaign.id, ':', allMessages);
+                    } else {
+                      console.log('ℹ️ No previous conversations found for campaign', campaign.id);
+                    }
+                  }
+                } else {
+                  console.error('Failed to fetch conversations:', conversationsResponse.statusText);
+                }
+              } else {
+                console.log('Campaign not ready for chat yet');
+              }
+            } else if (loadResponse.status === 500) {
+              const errorData = await loadResponse.json();
+              if (errorData.detail && errorData.detail.includes("Campaign not found")) {
+                console.log('Campaign not found in load API, continuing with fresh chat');
+              } else {
+                console.error('Error loading campaign:', errorData);
+              }
+            } else {
+              console.error('Failed to load campaign:', loadResponse.statusText);
+            }
           } else {
-            console.error('Failed to send data to Python API:', pythonResponse.statusText);
+            console.error('Failed to send data to Python API:', uploadResponse.statusText);
           }
         } catch (pythonError) {
           console.error('Error sending data to Python API:', pythonError);
@@ -523,12 +603,8 @@ export default function HomePage() {
           // Open chatbot and create new chat session
           const newChatId = Date.now().toString();
           setCurrentChatId(newChatId);
-          setMessages([{
-            id: 1,
-            type: 'bot',
-            message: data.campaign_name,
-            timestamp: new Date()
-          }]);
+          
+          // Open chat - let NewChatComponent handle message initialization
           setIsChatOpen(true);
       }
     } catch (err) {
@@ -553,6 +629,8 @@ export default function HomePage() {
      setIsChatOpen(false);
      setMessages([]);
      setCurrentChatId(null);
+     setHasLoadedConversations(false);
+     setCurrentCampaignId(null);
    };
 
   const startNewChat = () => {
@@ -1214,11 +1292,27 @@ export default function HomePage() {
       {status === "loading" ? (
         <LoadingSpinner size="large" />
       ) : isChatOpen ? (
-        <NewChatComponent 
-          isOpen={isChatOpen} 
-          onClose={() => setIsChatOpen(false)} 
-          campaignData={selectedCampaignMetrics}
+        <>
+          {console.log('🔍 Passing to NewChatComponent - currentCampaignId:', currentCampaignId, 'selectedCampaignMetrics:', selectedCampaignMetrics)}
+          <NewChatComponent 
+            isOpen={isChatOpen} 
+            onClose={() => setIsChatOpen(false)} 
+            campaignData={{
+              ...selectedCampaignMetrics,
+              campaign_id: currentCampaignId
+            }}
+          messages={messages}
+          setMessages={setMessages}
+          isTyping={isTyping}
+          setIsTyping={setIsTyping}
+          currentChatId={currentChatId}
+          setCurrentChatId={setCurrentChatId}
+          chatHistory={chatHistory}
+          setChatHistory={setChatHistory}
+          hasLoadedConversations={hasLoadedConversations}
+          setHasLoadedConversations={setHasLoadedConversations}
         />
+        </>
       ) : (
         <>
           {/* Header */}
