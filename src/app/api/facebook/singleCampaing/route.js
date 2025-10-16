@@ -11,6 +11,7 @@ export async function GET(req) {
   const urlParams = new URLSearchParams(req.url.split('?')[1]);
   const adAccountId = urlParams.get("adAccountId");
   const campaignId = urlParams.get("campaignId");
+  const daysBack = urlParams.get("days") || "30"; // Default to 30 days, can be customized
 
   console.log("Ad Account ID:", adAccountId); // Log the Ad Account ID
   console.log("Campaign ID:", campaignId);   // Log the Campaign ID
@@ -27,8 +28,22 @@ export async function GET(req) {
     console.log("Fetching campaign insights...");
     let insightsResponse;
     try {
+      // Get current date and 30 days ago for date range
+      // Use US Eastern Time (Facebook's primary timezone) to avoid timezone issues
+      const now = new Date();
+      
+      // Convert to US Eastern Time (UTC-5 or UTC-4 depending on DST)
+      const usEasternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      const endDate = usEasternTime.toISOString().split('T')[0]; // Today in YYYY-MM-DD format (US Eastern)
+      const startDate = new Date(usEasternTime.getTime() - parseInt(daysBack) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // X days ago (US Eastern)
+      
+      console.log(`📅 Fetching campaign data for last ${daysBack} days: ${startDate} to ${endDate} (US Eastern Time)`);
+      console.log(`🌍 Your timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+      console.log(`🇺🇸 US Eastern time: ${usEasternTime.toISOString()}`);
+      console.log(`🕐 Your local time: ${now.toISOString()}`);
+      
       insightsResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=clicks,impressions,spend,cpc,cpm,campaign_name,conversion_rate_ranking,conversion_values,conversions,cost_per_estimated_ad_recallers,cost_per_conversion,cost_per_action_type,cost_per_unique_click,cost_per_unique_outbound_click,ctr,cpp,objective,social_spend,quality_ranking,reach,frequency,ad_name,adset_name,cost_per_purchase,website_purchase_roas,actions,action_values,outbound_clicks,outbound_clicks_ctr,unique_clicks,unique_ctr,unique_outbound_clicks,unique_outbound_clicks_ctr,inline_link_clicks,inline_post_engagement&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=clicks,impressions,spend,cpc,cpm,campaign_name,conversion_rate_ranking,conversion_values,conversions,cost_per_estimated_ad_recallers,cost_per_conversion,cost_per_action_type,cost_per_unique_click,cost_per_unique_outbound_click,ctr,cpp,objective,social_spend,quality_ranking,reach,frequency,ad_name,adset_name,cost_per_purchase,website_purchase_roas,actions,action_values,outbound_clicks,outbound_clicks_ctr,unique_clicks,unique_ctr,unique_outbound_clicks,unique_outbound_clicks_ctr,inline_link_clicks,inline_post_engagement&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       console.log("Insights response received:", insightsResponse.data);
     } catch (error) {
@@ -114,7 +129,7 @@ export async function GET(req) {
     let dailyInsights = [];
     try {
     const dailyInsightsResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?time_increment=1&fields=clicks,impressions,spend,cpc,cpm,ctr,reach,frequency,actions&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?time_increment=1&fields=clicks,impressions,spend,cpc,cpm,ctr,reach,frequency,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       dailyInsights = dailyInsightsResponse.data.data;
       console.log("Daily insights fetched successfully");
@@ -127,7 +142,7 @@ export async function GET(req) {
     let platformData = [];
     try {
     const platformBreakdownResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=publisher_platform&fields=clicks,impressions,spend,cpc,cpm,ctr&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=publisher_platform&fields=clicks,impressions,spend,cpc,cpm,ctr&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       platformData = platformBreakdownResponse.data.data;
       console.log("Platform data fetched successfully");
@@ -140,7 +155,7 @@ export async function GET(req) {
     let actionData = [];
     try {
     const actionTypesResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=actions,action_values&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=actions,action_values&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       actionData = actionTypesResponse.data.data;
       console.log("Action data fetched successfully");
@@ -153,7 +168,7 @@ export async function GET(req) {
     let demographicData = [];
     try {
     const ageGenderResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=age,gender&fields=clicks,impressions,spend&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=age,gender&fields=clicks,impressions,spend&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       demographicData = ageGenderResponse.data.data;
       console.log("Demographic data fetched successfully");
@@ -166,7 +181,7 @@ export async function GET(req) {
     let countryData = [];
     try {
     const countryResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=country&fields=clicks,impressions,spend&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=country&fields=clicks,impressions,spend&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       countryData = countryResponse.data.data;
       console.log("Country data fetched successfully");
@@ -179,7 +194,7 @@ export async function GET(req) {
     let placementData = [];
     try {
     const placementResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=clicks,impressions,spend,cpc,cpm,ctr&breakdowns=publisher_platform,platform_position&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=clicks,impressions,spend,cpc,cpm,ctr&breakdowns=publisher_platform,platform_position&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       placementData = placementResponse.data.data;
       console.log("Placement data fetched successfully");
@@ -192,7 +207,7 @@ export async function GET(req) {
     let deviceData = [];
     try {
     const deviceBreakdownResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=device_platform&fields=clicks,impressions,spend,cpc,cpm,ctr&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=device_platform&fields=clicks,impressions,spend,cpc,cpm,ctr&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       deviceData = deviceBreakdownResponse.data.data;
       console.log("Device data fetched successfully");
