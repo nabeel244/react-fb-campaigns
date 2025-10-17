@@ -34,24 +34,53 @@ export async function GET(req) {
     
     console.log(`🔧 Access Token: ${USE_SANDBOX_MODE ? 'Using sandbox token for testing' : 'Using session token'}`);
 
+    // First, fetch the actual campaign details to get real start/stop dates
+    console.log("Fetching campaign details (start/stop dates)...");
+    let campaignDetails = {};
+    try {
+      const campaignDetailsResponse = await axios.get(
+        `https://graph.facebook.com/v23.0/${campaignId}?fields=id,name,status,objective,start_time,stop_time,created_time,updated_time&access_token=${accessToken}`
+      );
+      campaignDetails = campaignDetailsResponse.data;
+      console.log("📅 Campaign details fetched:", {
+        name: campaignDetails.name,
+        status: campaignDetails.status,
+        start_time: campaignDetails.start_time,
+        stop_time: campaignDetails.stop_time
+      });
+    } catch (error) {
+      console.error("Error fetching campaign details:", error.response?.data || error.message);
+    }
+
+    // Get current date and campaign start date for date range
+    // Use US Eastern Time (Facebook's primary timezone) to avoid timezone issues
+    const now = new Date();
+    
+    // Convert to US Eastern Time (UTC-5 or UTC-4 depending on DST)
+    const usEasternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    const endDate = usEasternTime.toISOString().split('T')[0]; // Today in YYYY-MM-DD format (US Eastern)
+    
+    // Use campaign start date if available, otherwise fall back to 30 days ago
+    let startDate;
+    if (campaignDetails.start_time) {
+      // Convert campaign start time to US Eastern date format
+      const campaignStartDate = new Date(campaignDetails.start_time);
+      const campaignStartEastern = new Date(campaignStartDate.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      startDate = campaignStartEastern.toISOString().split('T')[0];
+    } else {
+      // Fallback to 30 days ago if no start time available
+      startDate = new Date(usEasternTime.getTime() - parseInt(daysBack) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    }
+    
+    console.log(`📅 Fetching campaign data from campaign start to current date: ${startDate} to ${endDate} (US Eastern Time)`);
+    console.log(`🌍 Your timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+    console.log(`🇺🇸 US Eastern time: ${usEasternTime.toISOString()}`);
+    console.log(`🕐 Your local time: ${now.toISOString()}`);
+
     // Fetch campaign insights with comprehensive fields
     console.log("Fetching campaign insights...");
     let insightsResponse;
     try {
-      // Get current date and 30 days ago for date range
-      // Use US Eastern Time (Facebook's primary timezone) to avoid timezone issues
-      const now = new Date();
-      
-      // Convert to US Eastern Time (UTC-5 or UTC-4 depending on DST)
-      const usEasternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-      const endDate = usEasternTime.toISOString().split('T')[0]; // Today in YYYY-MM-DD format (US Eastern)
-      const startDate = new Date(usEasternTime.getTime() - parseInt(daysBack) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // X days ago (US Eastern)
-      
-      console.log(`📅 Fetching campaign data for last ${daysBack} days: ${startDate} to ${endDate} (US Eastern Time)`);
-      console.log(`🌍 Your timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
-      console.log(`🇺🇸 US Eastern time: ${usEasternTime.toISOString()}`);
-      console.log(`🕐 Your local time: ${now.toISOString()}`);
-      
       insightsResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=clicks,impressions,spend,cpc,cpm,campaign_name,conversion_rate_ranking,conversion_values,conversions,cost_per_estimated_ad_recallers,cost_per_conversion,cost_per_action_type,cost_per_unique_click,cost_per_unique_outbound_click,ctr,cpp,objective,social_spend,quality_ranking,reach,frequency,ad_name,adset_name,cost_per_purchase,website_purchase_roas,actions,action_values,outbound_clicks,outbound_clicks_ctr,unique_clicks,unique_ctr,unique_outbound_clicks,unique_outbound_clicks_ctr,inline_link_clicks,inline_post_engagement&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
@@ -133,6 +162,9 @@ export async function GET(req) {
     }
 
     console.log("Campaign data found:", campaignData.campaign_name);
+    console.log("📅 Campaign actual start_time:", campaignDetails.start_time);
+    console.log("📅 Campaign actual stop_time:", campaignDetails.stop_time);
+    console.log("📅 Insights date range used:", `${startDate} to ${endDate}`);
 
     // Fetch daily insights
     console.log("Fetching daily insights...");
@@ -233,8 +265,8 @@ export async function GET(req) {
         // Basic Campaign Info
         campaign_name: campaignData.campaign_name,
         objective: campaignData.objective,
-        date_start: campaignData.date_start,
-        date_stop: campaignData.date_stop,
+        date_start: campaignDetails.start_time || campaignData.date_start,
+        date_stop: campaignDetails.stop_time || campaignData.date_stop,
         
         // Core Metrics
         clicks: campaignData.clicks,
