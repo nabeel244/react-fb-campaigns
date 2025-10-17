@@ -13,7 +13,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 // const API_BASE_URL = "http://localhost:8000"; // Localhost URL (uncomment to use)
 
 // Set to true when using sandbox tokens (bypasses session authentication)
-const USE_SANDBOX_MODE = false;
+const USE_SANDBOX_MODE = process.env.NEXT_PUBLIC_USE_SANDBOX_MODE === 'true';
 // =========================
 
 export default function HomePage() {
