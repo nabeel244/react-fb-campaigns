@@ -502,7 +502,6 @@ export default function HomePage() {
             reach: data.reach?.toString() || "0",
             frequency: data.frequency?.toString() || "0",
             date_start: data.date_start || "",
-            date_stop: data.date_stop || "",
             ad_sets: data.ad_sets || [],
             creative_data: data.creative_data || {},
             strategy_data: data.strategy_data || {},
