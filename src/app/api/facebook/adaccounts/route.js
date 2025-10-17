@@ -3,13 +3,24 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import axios from "axios";
 
 export async function GET(req) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  // Configuration: Set to true when using sandbox tokens (bypasses session authentication)
+  const USE_SANDBOX_MODE = process.env.USE_SANDBOX_MODE === 'true';
+  
+  if (!USE_SANDBOX_MODE) {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    }
   }
 
   try {
-    const accessToken = session.accessToken;
+    const session = USE_SANDBOX_MODE ? null : await getServerSession(authOptions);
+    
+    const accessToken = USE_SANDBOX_MODE 
+      ? process.env.SANDBOX_ACCESS_TOKEN
+      : session?.accessToken;
+    
+    console.log(`🔧 Access Token: ${USE_SANDBOX_MODE ? 'Using sandbox token for testing' : 'Using session token'}`);
 
     // Get the user's Ad Accounts
     const adAccountsResponse = await axios.get(
