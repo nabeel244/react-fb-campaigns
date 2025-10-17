@@ -11,6 +11,9 @@ import NewChatComponent from "@/components/NewChatComponent";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // const API_BASE_URL = "http://localhost:8000"; // Localhost URL (uncomment to use)
+
+// Set to true when using sandbox tokens (bypasses session authentication)
+const USE_SANDBOX_MODE = false;
 // =========================
 
 export default function HomePage() {
@@ -32,7 +35,11 @@ export default function HomePage() {
 
   // Console log Facebook auth token and call login API
   useEffect(() => {
-    if (session?.accessToken) {
+    if (USE_SANDBOX_MODE) {
+      console.log("🔧 Sandbox mode enabled - bypassing session authentication");
+      // In sandbox mode, we don't need session authentication
+      // The Facebook APIs will use the hardcoded sandbox token
+    } else if (session?.accessToken) {
       console.log("🔑 Facebook Access Token:", session.accessToken);
       console.log("📊 Full Session Data:", session);
       
@@ -230,6 +237,7 @@ export default function HomePage() {
       const chatPayload = {
         message: message,
         prompt_type: "executive",
+        campaign_id: currentCampaignId,
         timestamp: new Date().toISOString()
       };
 
@@ -373,12 +381,13 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (USE_SANDBOX_MODE) {
+      console.log("🔧 Sandbox mode - skipping authentication check, fetching ad accounts directly");
+      fetchAdAccounts();
+    } else if (status === "unauthenticated") {
       router.push("/login");
       return;
-    }
-
-    if (status === "authenticated") {
+    } else if (status === "authenticated") {
       fetchAdAccounts();
     }
   }, [status, router]);
@@ -538,91 +547,64 @@ export default function HomePage() {
             console.warn('⚠️ No valid auth token found for data upload');
           }
 
-          // Send campaign data to upload API
-          console.log(`📤 Uploading campaign ${campaign.id} data...`);
-          const uploadResponse = await fetch(`${API_BASE_URL}/api/data/upload?campaign_id=${campaign.id}`, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(pythonApiPayload)
-          });
+                  // Send campaign data to upload API
+                  console.log(`📤 Uploading campaign ${campaign.id} data...`);
+                  const uploadResponse = await fetch(`${API_BASE_URL}/api/data/upload?campaign_id=${campaign.id}`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(pythonApiPayload)
+                  });
 
-          if (uploadResponse.ok) {
-            const uploadData = await uploadResponse.json();
-            console.log('Campaign data successfully sent to Python API:', uploadData);
-            
-            // Call load API after successful upload
-            console.log(`🔄 Loading campaign ${campaign.id} for analysis...`);
-            const loadResponse = await fetch(`${API_BASE_URL}/api/data/campaigns/${campaign.id}/load`, {
-              method: 'POST',
-              headers: headers
-            });
-
-            if (loadResponse.ok) {
-              const loadData = await loadResponse.json();
-              console.log('Campaign loaded successfully:', loadData);
-              
-              // Check if ready for chat
-              if (loadData.ready_for_chat) {
-                console.log(`✅ Campaign ready for chat, fetching conversations...`);
-                
-                // Call conversations API
-                const conversationsResponse = await fetch(`${API_BASE_URL}/api/chat/conversations?campaign_id=${campaign.id}`, {
-                  method: 'GET',
-                  headers: headers
-                });
-
-                if (conversationsResponse.ok) {
-                  const conversationsData = await conversationsResponse.json();
-                  console.log('Conversations fetched successfully:', conversationsData);
-                  
-                  // Process and display messages in chat
-                  if (conversationsData && conversationsData.length > 0) {
-                    // Get all messages from all conversations and sort by timestamp
-                    const allMessages = [];
-                    conversationsData.forEach(conversation => {
-                      if (conversation.messages && conversation.messages.length > 0) {
-                        conversation.messages.forEach(msg => {
-                          allMessages.push({
-                            id: msg.id,
-                            type: msg.role === 'user' ? 'user' : 'bot',
-                            message: msg.content,
-                            timestamp: new Date(msg.created_at)
-                          });
-                        });
-                      }
+                  if (uploadResponse.ok) {
+                    const uploadData = await uploadResponse.json();
+                    console.log('Campaign data successfully sent to Python API:', uploadData);
+                    
+                    // Fetch conversations directly (no load API needed)
+                    console.log(`✅ Campaign uploaded, fetching conversations...`);
+                    const conversationsResponse = await fetch(`${API_BASE_URL}/api/chat/conversations?campaign_id=${campaign.id}`, {
+                      method: 'GET',
+                      headers: headers
                     });
-                    
-                    // Sort messages by timestamp to show them in chronological order
-                    allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-                    
-                    if (allMessages.length > 0) {
-                      // Store messages to be loaded when chat opens
-                      setMessages(allMessages);
-                      setHasLoadedConversations(true);
-                      console.log('✅ Previous conversations loaded for campaign', campaign.id, ':', allMessages);
+
+                    if (conversationsResponse.ok) {
+                      const conversationsData = await conversationsResponse.json();
+                      console.log('Conversations fetched successfully:', conversationsData);
+                      
+                      // Process and display messages in chat
+                      if (conversationsData && conversationsData.length > 0) {
+                        // Get all messages from all conversations and sort by timestamp
+                        const allMessages = [];
+                        conversationsData.forEach(conversation => {
+                          if (conversation.messages && conversation.messages.length > 0) {
+                            conversation.messages.forEach(msg => {
+                              allMessages.push({
+                                id: msg.id,
+                                type: msg.role === 'user' ? 'user' : 'bot',
+                                message: msg.content,
+                                timestamp: new Date(msg.created_at)
+                              });
+                            });
+                          }
+                        });
+                        
+                        // Sort messages by timestamp to show them in chronological order
+                        allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                        
+                        if (allMessages.length > 0) {
+                          // Store messages to be loaded when chat opens
+                          setMessages(allMessages);
+                          setHasLoadedConversations(true);
+                          console.log('✅ Previous conversations loaded for campaign', campaign.id, ':', allMessages);
+                        } else {
+                          console.log('ℹ️ No previous conversations found for campaign', campaign.id);
+                        }
+                      }
                     } else {
-                      console.log('ℹ️ No previous conversations found for campaign', campaign.id);
+                      console.error('Failed to fetch conversations:', conversationsResponse.statusText);
                     }
+                  } else {
+                    console.error('Failed to send data to Python API:', uploadResponse.statusText);
                   }
-                } else {
-                  console.error('Failed to fetch conversations:', conversationsResponse.statusText);
-                }
-              } else {
-                console.log('Campaign not ready for chat yet');
-              }
-            } else if (loadResponse.status === 500) {
-              const errorData = await loadResponse.json();
-              if (errorData.detail && errorData.detail.includes("Campaign not found")) {
-                console.log('Campaign not found in load API, continuing with fresh chat');
-              } else {
-                console.error('Error loading campaign:', errorData);
-              }
-            } else {
-              console.error('Failed to load campaign:', loadResponse.statusText);
-            }
-          } else {
-            console.error('Failed to send data to Python API:', uploadResponse.statusText);
-          }
         } catch (pythonError) {
           console.error('Error sending data to Python API:', pythonError);
         }

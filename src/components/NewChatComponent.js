@@ -134,75 +134,48 @@ const NewChatComponent = ({
         console.warn('⚠️ No valid auth token found for campaign load');
       }
 
-      // Call load API
-      console.log(`🔄 Loading campaign ${campaign.id} for analysis...`);
-      const loadResponse = await fetch(`${API_BASE_URL}/api/data/campaigns/${campaign.id}/load`, {
-        method: 'POST',
+      // Fetch conversations directly (no load API needed)
+      console.log(`✅ Campaign selected, fetching conversations...`);
+      const conversationsResponse = await fetch(`${API_BASE_URL}/api/chat/conversations?campaign_id=${campaign.id}`, {
+        method: 'GET',
         headers: headers
       });
 
-      if (loadResponse.ok) {
-        const loadData = await loadResponse.json();
-        console.log('Campaign loaded successfully:', loadData);
+      if (conversationsResponse.ok) {
+        const conversationsData = await conversationsResponse.json();
+        console.log('Conversations fetched successfully:', conversationsData);
         
-        // Check if ready for chat
-        if (loadData.ready_for_chat) {
-          console.log(`✅ Campaign ready for chat, fetching conversations...`);
-          
-          // Call conversations API
-          const conversationsResponse = await fetch(`${API_BASE_URL}/api/chat/conversations?campaign_id=${campaign.id}`, {
-            method: 'GET',
-            headers: headers
-          });
-
-          if (conversationsResponse.ok) {
-            const conversationsData = await conversationsResponse.json();
-            console.log('Conversations fetched successfully:', conversationsData);
-            
-            // Process and display messages in chat
-            if (conversationsData && conversationsData.length > 0) {
-              // Get all messages from all conversations and sort by timestamp
-              const allMessages = [];
-              conversationsData.forEach(conversation => {
-                if (conversation.messages && conversation.messages.length > 0) {
-                  conversation.messages.forEach(msg => {
-                    allMessages.push({
-                      id: msg.id,
-                      type: msg.role === 'user' ? 'user' : 'bot',
-                      message: msg.content,
-                      timestamp: new Date(msg.created_at)
-                    });
-                  });
-                }
+        // Process and display messages in chat
+        if (conversationsData && conversationsData.length > 0) {
+          // Get all messages from all conversations and sort by timestamp
+          const allMessages = [];
+          conversationsData.forEach(conversation => {
+            if (conversation.messages && conversation.messages.length > 0) {
+              conversation.messages.forEach(msg => {
+                allMessages.push({
+                  id: msg.id,
+                  type: msg.role === 'user' ? 'user' : 'bot',
+                  message: msg.content,
+                  timestamp: new Date(msg.created_at)
+                });
               });
-              
-              // Sort messages by timestamp to show them in chronological order
-              allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-              
-              if (allMessages.length > 0) {
-                // Store messages to be loaded when chat opens
-                setMessages(allMessages);
-                setHasLoadedConversations(true);
-                console.log('✅ Previous conversations loaded for campaign', campaign.id, ':', allMessages);
-              } else {
-                console.log('ℹ️ No previous conversations found for campaign', campaign.id);
-              }
             }
+          });
+          
+          // Sort messages by timestamp to show them in chronological order
+          allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          
+          if (allMessages.length > 0) {
+            // Store messages to be loaded when chat opens
+            setMessages(allMessages);
+            setHasLoadedConversations(true);
+            console.log('✅ Previous conversations loaded for campaign', campaign.id, ':', allMessages);
           } else {
-            console.error('Failed to fetch conversations:', conversationsResponse.statusText);
+            console.log('ℹ️ No previous conversations found for campaign', campaign.id);
           }
-        } else {
-          console.log('Campaign not ready for chat yet');
-        }
-      } else if (loadResponse.status === 500) {
-        const errorData = await loadResponse.json();
-        if (errorData.detail && errorData.detail.includes("Campaign not found")) {
-          console.log('Campaign not found in load API, continuing with fresh chat');
-        } else {
-          console.error('Error loading campaign:', errorData);
         }
       } else {
-        console.error('Failed to load campaign:', loadResponse.statusText);
+        console.error('Failed to fetch conversations:', conversationsResponse.statusText);
       }
     } catch (error) {
       console.error('Error loading campaign from sidebar:', error);
