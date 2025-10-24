@@ -93,15 +93,29 @@ export async function GET(req) {
       }), { status: 500 });
     }
 
+    // Fetch daily insights for budget breakdown
+    console.log("Fetching daily insights for budget breakdown...");
+    let dailyInsightsResponse;
+    try {
+      dailyInsightsResponse = await axios.get(
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=date_start,date_stop,spend,clicks,impressions,ctr,reach,frequency&time_range={'since':'${startDate}','until':'${endDate}'}&level=day&access_token=${accessToken}`
+      );
+      console.log("Daily insights response received:", dailyInsightsResponse.data);
+    } catch (error) {
+      console.error("Error fetching daily insights:", error.response?.data || error.message);
+      // Don't fail the entire request if daily insights fail
+      dailyInsightsResponse = { data: { data: [] } };
+    }
+
     // Fetch Ad Set Details (targeting, location, and audience)
     console.log("Fetching ad sets...");
     let adSetData = [];
     try {
     const adSetResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/adsets?fields=account_id,adlabels,adset_schedule,asset_feed_id,attribution_spec,bid_amount,bid_constraints,bid_info,bid_strategy,billing_event,budget_remaining,campaign_id,configured_status,created_time,daily_budget,date_format,description,destination_type,effective_status,end_time,execution_options,frequency_control_specs,full_funnel_exploration_mode,id,instagram_actor_id,is_dynamic_creative,lifetime_budget,name,optimization_goal,optimization_sub_event,pacing_type,promoted_object,recommendations,recurring_budget_semantics,review_feedback,rf_prediction_id,source_adset,source_adset_id,start_time,status,targeting,time_based_ad_rotation_id_blocks,time_based_ad_rotation_intervals,updated_time,use_new_app_click&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/adsets?fields=id,name,status,created_time,updated_time,daily_budget,lifetime_budget,budget_remaining,optimization_goal,bid_amount,targeting,start_time,end_time&access_token=${accessToken}`
       );
       adSetData = adSetResponse.data.data;
-      console.log("Ad sets fetched successfully");
+      console.log("Ad sets fetched successfully:", adSetData);
     } catch (error) {
       console.error("Error fetching ad sets:", error.response?.data || error.message);
     }
@@ -111,10 +125,10 @@ export async function GET(req) {
     let strategyData = {};
     try {
     const strategyResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}?fields=account_id,adlabels,adset_schedule,asset_feed_id,attribution_spec,bid_strategy,boosted_object_id,brand_lift_studies,budget_rebalance_flag,budget_remaining,buying_type,campaign_group_active_time,can_create_brand_lift_study,can_use_spend_cap,configured_status,created_time,daily_budget,effective_status,id,issues_info,last_budget_toggling_time,lifetime_budget,name,objective,optimization_goal,pacing_type,primary_attribution,promoted_object,recommendations,smart_promotion_type,source_campaign,special_ad_categories,spend_cap,start_time,status,stop_time,topline_id,updated_time&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}?fields=id,name,objective,status,created_time,updated_time,daily_budget,lifetime_budget,budget_remaining,spend_cap,start_time,stop_time,buying_type&access_token=${accessToken}`
       );
       strategyData = strategyResponse.data;
-      console.log("Strategy data fetched successfully");
+      console.log("Strategy data fetched successfully:", strategyData);
     } catch (error) {
       console.error("Error fetching strategy data:", error.response?.data || error.message);
     }
@@ -125,10 +139,10 @@ export async function GET(req) {
     let creativeData = null;
     try {
     const adResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/ads?fields=account_id,ad_review_feedback,adlabels,adset_id,audience_id,bid_amount,campaign_id,configured_status,conversion_domain,created_time,creative,effective_status,id,name,objective,recommendations,source_ad,source_ad_id,status,tracking_specs,updated_time&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/ads?fields=id,name,status,created_time,updated_time,adset_id,campaign_id,creative&access_token=${accessToken}`
       );
       adsData = adResponse.data.data;
-      console.log("Ads data fetched successfully");
+      console.log("Ads data fetched successfully:", adsData);
 
       // Extract the creative ID and fetch creative data
       if (adsData.length > 0 && adsData[0].creative && adsData[0].creative.id) {
@@ -137,7 +151,7 @@ export async function GET(req) {
         
         try {
   const creativeResponse = await axios.get(
-            `https://graph.facebook.com/v23.0/${creativeId}?fields=account_id,actor_id,adlabels,applink_treatment,asset_feed_id,authorization_category,auto_update,body,branded_content_sponsor_page_id,bundle_folder_id,call_to_action_type,categorization_criteria,category_media_source,conversion_tracking_urls,created_time,description,effective_instagram_story_id,effective_object_story_id,id,image_crops,image_hash,image_url,instagram_actor_id,instagram_permalink_url,instagram_story_id,link,message,name,object_id,object_story_id,object_story_spec,object_type,object_url,place_page_set_id,platform_customizations,playable_asset_id,portrait_customizations,product_set_id,recommendations,source_instagram_media_id,status,thumbnail_url,title,url_tags,use_page_actor_override,video_id&access_token=${accessToken}`
+            `https://graph.facebook.com/v23.0/${creativeId}?fields=id,name,body,title,object_type,image_url,link,message&access_token=${accessToken}`
   );
    creativeData = creativeResponse.data;
           console.log("Creative data fetched successfully");
@@ -150,6 +164,11 @@ export async function GET(req) {
 }
 
     const campaignData = insightsResponse.data.data[0];
+
+    // Debug logging
+    console.log("Final response data - Ad sets:", adSetData);
+    console.log("Final response data - Daily budget breakdown:", dailyInsightsResponse.data.data);
+    console.log("Final response data - Strategy data:", strategyData);
 
     if (!campaignData) {
       console.error("No campaign data found in insights response");
@@ -322,6 +341,7 @@ export async function GET(req) {
         creative_data: creativeData,
         strategy_data: strategyData,
         daily_insights: dailyInsights,
+        daily_budget_breakdown: dailyInsightsResponse.data.data || [],
         platform_data: platformData,
         action_data: actionData,
         demographic_data: demographicData,
