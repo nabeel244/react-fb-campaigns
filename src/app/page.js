@@ -532,7 +532,11 @@ export default function HomePage() {
             daily_budget: data.strategy_data?.daily_budget?.toString() || "0",
             lifetime_budget: data.strategy_data?.lifetime_budget?.toString() || "0",
             budget_remaining: data.strategy_data?.budget_remaining?.toString() || "0",
-            spend_cap: data.strategy_data?.spend_cap?.toString() || "0"
+            spend_cap: data.strategy_data?.spend_cap?.toString() || "0",
+            // Additional comprehensive fields
+            ads_data: data.ads_data || [],
+            // All the new insights fields will be automatically included in the data object
+            // since we're passing the entire data object to the backend
           };
 
           console.log('Sending data to Python API:', pythonApiPayload);
@@ -554,10 +558,10 @@ export default function HomePage() {
                   // Send campaign data to upload API
                   console.log(`📤 Uploading campaign ${campaign.id} data...`);
                   const uploadResponse = await fetch(`${API_BASE_URL}/api/data/upload?campaign_id=${campaign.id}`, {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify(pythonApiPayload)
-                  });
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(pythonApiPayload)
+          });
 
                   if (uploadResponse.ok) {
                     const uploadData = await uploadResponse.json();
@@ -599,7 +603,7 @@ export default function HomePage() {
                           setMessages(allMessages);
                           setHasLoadedConversations(true);
                           console.log('✅ Previous conversations loaded for campaign', campaign.id, ':', allMessages);
-                        } else {
+          } else {
                           console.log('ℹ️ No previous conversations found for campaign', campaign.id);
                         }
                       }
@@ -608,7 +612,7 @@ export default function HomePage() {
                     }
                   } else {
                     console.error('Failed to send data to Python API:', uploadResponse.statusText);
-                  }
+          }
         } catch (pythonError) {
           console.error('Error sending data to Python API:', pythonError);
         }
@@ -1208,7 +1212,7 @@ export default function HomePage() {
                 overflowY: 'auto',
                 padding: '30px',
                 background: 'rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)'
+               backdropFilter: 'blur(10px)'
               }}
             >
               {messages.map((message) => (
