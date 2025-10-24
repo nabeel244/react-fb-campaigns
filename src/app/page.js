@@ -527,7 +527,12 @@ export default function HomePage() {
             post_comments: data.post_comments?.toString() || "0",
             post_shares: data.post_shares?.toString() || "0",
             ad_name: data.ad_name || "",
-            adset_name: data.adset_name || ""
+            adset_name: data.adset_name || "",
+            // Budget fields from strategy_data
+            daily_budget: data.strategy_data?.daily_budget?.toString() || "0",
+            lifetime_budget: data.strategy_data?.lifetime_budget?.toString() || "0",
+            budget_remaining: data.strategy_data?.budget_remaining?.toString() || "0",
+            spend_cap: data.strategy_data?.spend_cap?.toString() || "0"
           };
 
           console.log('Sending data to Python API:', pythonApiPayload);

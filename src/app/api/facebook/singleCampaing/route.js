@@ -98,7 +98,7 @@ export async function GET(req) {
     let adSetData = [];
     try {
     const adSetResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/adsets?fields=name,targeting,optimization_goal,bid_amount,location,audience,age,gender,interests&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/adsets?fields=name,targeting,optimization_goal,bid_amount,location,audience,age,gender,interests,daily_budget,lifetime_budget,budget_remaining&access_token=${accessToken}`
       );
       adSetData = adSetResponse.data.data;
       console.log("Ad sets fetched successfully");
@@ -111,7 +111,7 @@ export async function GET(req) {
     let strategyData = {};
     try {
     const strategyResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}?fields=objective,last_budget_toggling_time,created_time,can_use_spend_cap,campaign_group_active_time,buying_type,issues_info,pacing_type,primary_attribution,promoted_object,smart_promotion_type,source_campaign,spend_cap,ad_studies&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}?fields=objective,last_budget_toggling_time,created_time,can_use_spend_cap,campaign_group_active_time,buying_type,issues_info,pacing_type,primary_attribution,promoted_object,smart_promotion_type,source_campaign,spend_cap,ad_studies,daily_budget,lifetime_budget,budget_remaining&access_token=${accessToken}`
       );
       strategyData = strategyResponse.data;
       console.log("Strategy data fetched successfully");
