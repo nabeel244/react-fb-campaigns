@@ -82,7 +82,7 @@ export async function GET(req) {
     let insightsResponse;
     try {
       insightsResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=account_currency,account_id,account_name,actions,action_values,ad_id,ad_name,adset_id,adset_name,attribution_setting,auction_bid,auction_competitiveness,buying_type,campaign_id,campaign_name,canvas_avg_view_percent,canvas_avg_view_time,clicks,cost_per_15_sec_video_view,cost_per_2_sec_continuous_video_view,cost_per_action_type,cost_per_ad_click,cost_per_conversion,cost_per_estimated_ad_recallers,cost_per_inline_link_click,cost_per_inline_post_engagement,cost_per_one_thousand_ad_impression,cost_per_outbound_click,cost_per_thruplay,cost_per_unique_action_type,cost_per_unique_click,cost_per_unique_conversion,cost_per_unique_inline_link_click,cost_per_unique_outbound_click,cpp,created_time,ctr,date_start,date_stop,estimated_ad_recall_rate,estimated_ad_recallers,frequency,full_view_impressions,full_view_reach,impressions,inline_link_click_ctr,inline_link_clicks,inline_post_engagement,instant_experience_clicks_to_open,instant_experience_clicks_to_start,instant_experience_outbound_clicks,interactive_component_tap,objective,optimization_goal,outbound_clicks,outbound_clicks_ctr,place_page_name,quality_ranking,reach,social_spend,spend,unique_actions,unique_clicks,unique_conversions,unique_ctr,unique_inline_link_click_ctr,unique_inline_link_clicks,unique_link_clicks_ctr,unique_outbound_clicks,unique_outbound_clicks_ctr,unique_video_continuous_2_sec_watched_actions,unique_video_view_15_sec,updated_time,video_15_sec_watched_actions,video_30_sec_watched_actions,video_avg_time_watched_actions,video_p100_watched_actions,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p95_watched_actions,video_play_actions,video_play_curve_actions,video_play_retention_0_to_15s_actions,video_play_retention_20_to_60s_actions,video_thruplay_watched_actions,video_time_watched_actions,website_ctr,website_purchase_roas&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?fields=account_currency,account_id,account_name,actions,action_values,ad_id,ad_name,adset_id,adset_name,attribution_setting,auction_bid,auction_competitiveness,buying_type,campaign_id,campaign_name,canvas_avg_view_percent,canvas_avg_view_time,clicks,cost_per_15_sec_video_view,cost_per_2_sec_continuous_video_view,cost_per_action_type,cost_per_ad_click,cost_per_conversion,cost_per_estimated_ad_recallers,cost_per_inline_link_click,cost_per_inline_post_engagement,cost_per_one_thousand_ad_impression,cost_per_outbound_click,cost_per_result,cost_per_thruplay,cost_per_unique_action_type,cost_per_unique_click,cost_per_unique_conversion,cost_per_unique_inline_link_click,cost_per_unique_outbound_click,cpp,created_time,ctr,date_start,date_stop,estimated_ad_recall_rate,estimated_ad_recallers,frequency,full_view_impressions,full_view_reach,impressions,inline_link_click_ctr,inline_link_clicks,inline_post_engagement,instant_experience_clicks_to_open,instant_experience_clicks_to_start,instant_experience_outbound_clicks,interactive_component_tap,objective,optimization_goal,outbound_clicks,outbound_clicks_ctr,place_page_name,quality_ranking,reach,social_spend,spend,unique_actions,unique_clicks,unique_conversions,unique_ctr,unique_inline_link_click_ctr,unique_inline_link_clicks,unique_link_clicks_ctr,unique_outbound_clicks,unique_outbound_clicks_ctr,unique_video_continuous_2_sec_watched_actions,unique_video_view_15_sec,updated_time,video_15_sec_watched_actions,video_30_sec_watched_actions,video_avg_time_watched_actions,video_p100_watched_actions,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p95_watched_actions,video_play_actions,video_play_curve_actions,video_play_retention_0_to_15s_actions,video_play_retention_20_to_60s_actions,video_thruplay_watched_actions,video_time_watched_actions,website_ctr,website_purchase_roas&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       console.log("Insights response received:", insightsResponse.data);
     } catch (error) {
@@ -203,7 +203,7 @@ export async function GET(req) {
     let platformData = [];
     try {
     const platformBreakdownResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=publisher_platform&fields=clicks,impressions,spend,cpc,cpm,ctr,post_reactions,post_comments,post_shares,post_saves,post_engagement,inline_post_engagement&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=publisher_platform&fields=clicks,impressions,spend,cpc,cpm,ctr,actions,action_values,inline_link_clicks,inline_post_engagement,link_clicks,post_engagement&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       platformData = platformBreakdownResponse.data.data;
       console.log("Platform data fetched successfully");
@@ -216,12 +216,18 @@ export async function GET(req) {
     let platformEngagementData = [];
     try {
       const platformEngagementResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=publisher_platform&fields=post_reactions,post_comments,post_shares,post_saves,post_engagement,inline_post_engagement,page_engagement,link_clicks,photo_views,video_views,video_plays,video_play_actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=publisher_platform&fields=actions,action_values,inline_link_clicks,inline_post_engagement,link_clicks,post_engagement&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       platformEngagementData = platformEngagementResponse.data.data;
       console.log("Platform engagement data fetched successfully:", platformEngagementData);
+      console.log("Platform engagement data length:", platformEngagementData.length);
+      if (platformEngagementData.length > 0) {
+        console.log("First platform engagement item:", platformEngagementData[0]);
+      }
     } catch (error) {
       console.error("Error fetching platform engagement data:", error.response?.data || error.message);
+      // Don't fail the entire request if engagement data fails
+      platformEngagementData = [];
     }
 
     // Fetch action types
@@ -321,6 +327,7 @@ export async function GET(req) {
         cost_per_unique_outbound_click: campaignData.cost_per_unique_outbound_click,
         cost_per_conversion: campaignData.cost_per_conversion,
         cost_per_purchase: campaignData.cost_per_purchase,
+        cost_per_result: campaignData.cost_per_result,
         
         // Conversion & Value Metrics
         conversions: campaignData.conversions,
