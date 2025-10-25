@@ -115,16 +115,6 @@ export async function GET(req) {
         `https://graph.facebook.com/v23.0/${campaignId}/adsets?fields=id,name,status,created_time,updated_time,daily_budget,lifetime_budget,budget_remaining,optimization_goal,bid_amount,targeting,start_time,end_time&access_token=${accessToken}`
       );
       adSetData = adSetResponse.data.data;
-      
-      // Convert budget values from cents to dollars for each ad set
-      adSetData = adSetData.map(adSet => ({
-        ...adSet,
-        daily_budget: adSet.daily_budget ? (parseFloat(adSet.daily_budget) / 100).toString() : "0",
-        lifetime_budget: adSet.lifetime_budget ? (parseFloat(adSet.lifetime_budget) / 100).toString() : "0",
-        budget_remaining: adSet.budget_remaining ? (parseFloat(adSet.budget_remaining) / 100).toString() : "0",
-        bid_amount: adSet.bid_amount ? (parseFloat(adSet.bid_amount) / 100).toString() : "0"
-      }));
-      
       console.log("Ad sets fetched successfully:", adSetData);
     } catch (error) {
       console.error("Error fetching ad sets:", error.response?.data || error.message);
@@ -138,21 +128,6 @@ export async function GET(req) {
         `https://graph.facebook.com/v23.0/${campaignId}?fields=id,name,objective,status,created_time,updated_time,daily_budget,lifetime_budget,budget_remaining,spend_cap,start_time,stop_time,buying_type&access_token=${accessToken}`
       );
       strategyData = strategyResponse.data;
-      
-      // Convert budget values from cents to dollars for strategy data
-      if (strategyData.daily_budget) {
-        strategyData.daily_budget = (parseFloat(strategyData.daily_budget) / 100).toString();
-      }
-      if (strategyData.lifetime_budget) {
-        strategyData.lifetime_budget = (parseFloat(strategyData.lifetime_budget) / 100).toString();
-      }
-      if (strategyData.budget_remaining) {
-        strategyData.budget_remaining = (parseFloat(strategyData.budget_remaining) / 100).toString();
-      }
-      if (strategyData.spend_cap) {
-        strategyData.spend_cap = (parseFloat(strategyData.spend_cap) / 100).toString();
-      }
-      
       console.log("Strategy data fetched successfully:", strategyData);
     } catch (error) {
       console.error("Error fetching strategy data:", error.response?.data || error.message);
@@ -228,12 +203,25 @@ export async function GET(req) {
     let platformData = [];
     try {
     const platformBreakdownResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=publisher_platform&fields=clicks,impressions,spend,cpc,cpm,ctr&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=publisher_platform&fields=clicks,impressions,spend,cpc,cpm,ctr,post_reactions,post_comments,post_shares,post_saves,post_engagement,inline_post_engagement&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
       platformData = platformBreakdownResponse.data.data;
       console.log("Platform data fetched successfully");
     } catch (error) {
       console.error("Error fetching platform data:", error.response?.data || error.message);
+    }
+
+    // Fetch platform-specific engagement breakdown
+    console.log("Fetching platform-specific engagement data...");
+    let platformEngagementData = [];
+    try {
+      const platformEngagementResponse = await axios.get(
+        `https://graph.facebook.com/v23.0/${campaignId}/insights?breakdowns=publisher_platform&fields=post_reactions,post_comments,post_shares,post_saves,post_engagement,inline_post_engagement,page_engagement,link_clicks,photo_views,video_views,video_plays,video_play_actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
+      );
+      platformEngagementData = platformEngagementResponse.data.data;
+      console.log("Platform engagement data fetched successfully:", platformEngagementData);
+    } catch (error) {
+      console.error("Error fetching platform engagement data:", error.response?.data || error.message);
     }
 
     // Fetch action types
@@ -368,6 +356,7 @@ export async function GET(req) {
         daily_insights: dailyInsights,
         daily_budget_breakdown: dailyInsightsResponse.data.data || [],
         platform_data: platformData,
+        platform_engagement_data: platformEngagementData,
         action_data: actionData,
         demographic_data: demographicData,
         country_data: countryData,

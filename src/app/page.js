@@ -547,11 +547,11 @@ export default function HomePage() {
             post_shares: convertedData.post_shares?.toString() || "0",
             ad_name: convertedData.ad_name || "",
             adset_name: convertedData.adset_name || "",
-            // Budget fields from strategy_data - Already converted to dollars
-            daily_budget: convertedData.strategy_data?.daily_budget || "0",
-            lifetime_budget: convertedData.strategy_data?.lifetime_budget || "0",
-            budget_remaining: convertedData.strategy_data?.budget_remaining || "0",
-            spend_cap: convertedData.strategy_data?.spend_cap || "0",
+            // Budget fields from strategy_data - Use original values for Python API
+            daily_budget: data.strategy_data?.daily_budget || "0",
+            lifetime_budget: data.strategy_data?.lifetime_budget || "0",
+            budget_remaining: data.strategy_data?.budget_remaining || "0",
+            spend_cap: data.strategy_data?.spend_cap || "0",
             // Additional comprehensive fields
             ads_data: convertedData.ads_data || [],
             // All the new insights fields will be automatically included in the data object
