@@ -478,56 +478,90 @@ export default function HomePage() {
         console.log('Full Data Object:', JSON.stringify(data, null, 2));
         console.log('=== END CAMPAIGN DATA ===');
         
-        setSelectedCampaignMetrics(data);
+        // Convert budget values from cents to dollars in the campaign data
+        const convertedData = {
+          ...data,
+          ad_sets: data.ad_sets ? data.ad_sets.map(adSet => ({
+            ...adSet,
+            daily_budget: adSet.daily_budget ? (parseFloat(adSet.daily_budget) / 100).toString() : "0",
+            lifetime_budget: adSet.lifetime_budget ? (parseFloat(adSet.lifetime_budget) / 100).toString() : "0",
+            budget_remaining: adSet.budget_remaining ? (parseFloat(adSet.budget_remaining) / 100).toString() : "0",
+            bid_amount: adSet.bid_amount ? (parseFloat(adSet.bid_amount) / 100).toString() : "0"
+          })) : [],
+          strategy_data: data.strategy_data ? {
+            ...data.strategy_data,
+            daily_budget: data.strategy_data.daily_budget ? (parseFloat(data.strategy_data.daily_budget) / 100).toString() : "0",
+            lifetime_budget: data.strategy_data.lifetime_budget ? (parseFloat(data.strategy_data.lifetime_budget) / 100).toString() : "0",
+            budget_remaining: data.strategy_data.budget_remaining ? (parseFloat(data.strategy_data.budget_remaining) / 100).toString() : "0",
+            spend_cap: data.strategy_data.spend_cap ? (parseFloat(data.strategy_data.spend_cap) / 100).toString() : "0"
+          } : {}
+        };
+        
+        setSelectedCampaignMetrics(convertedData);
         setIsModalOpen(true);
         
         // Send campaign data to Python API
         try {
           const pythonApiPayload = {
-            clicks: data.clicks?.toString() || "0",
-            impressions: data.impressions?.toString() || "0",
-            spend: data.spend?.toString() || "0",
-            cpc: data.cpc?.toString() || "0",
-            cpm: data.cpm?.toString() || "0",
-            campaign_name: data.campaign_name || "",
-            conversion_rate_ranking: data.conversion_rate_ranking?.toString() || "0",
-            cost_per_action_type: data.cost_per_action_type || [],
-            cost_per_unique_click: data.cost_per_unique_click?.toString() || "0",
-            cost_per_unique_outbound_click: data.cost_per_unique_outbound_click || [],
-            ctr: data.ctr?.toString() || "0",
-            cpp: data.cpp?.toString() || "0",
-            objective: data.objective || "",
-            social_spend: data.social_spend?.toString() || "0",
-            quality_ranking: data.quality_ranking?.toString() || "0",
-            reach: data.reach?.toString() || "0",
-            frequency: data.frequency?.toString() || "0",
-            date_start: data.date_start || "",
-            ad_sets: data.ad_sets || [],
-            creative_data: data.creative_data || {},
-            strategy_data: data.strategy_data || {},
-            daily_insights: data.daily_insights || [],
-            platform_data: data.platform_data || [],
-            action_data: data.action_data || [],
-            demographic_data: data.demographic_data || [],
+            clicks: convertedData.clicks?.toString() || "0",
+            impressions: convertedData.impressions?.toString() || "0",
+            spend: convertedData.spend?.toString() || "0",
+            cpc: convertedData.cpc?.toString() || "0",
+            cpm: convertedData.cpm?.toString() || "0",
+            campaign_name: convertedData.campaign_name || "",
+            conversion_rate_ranking: convertedData.conversion_rate_ranking?.toString() || "0",
+            cost_per_action_type: convertedData.cost_per_action_type || [],
+            cost_per_unique_click: convertedData.cost_per_unique_click?.toString() || "0",
+            cost_per_unique_outbound_click: convertedData.cost_per_unique_outbound_click || [],
+            ctr: convertedData.ctr?.toString() || "0",
+            cpp: convertedData.cpp?.toString() || "0",
+            objective: convertedData.objective || "",
+            social_spend: convertedData.social_spend?.toString() || "0",
+            quality_ranking: convertedData.quality_ranking?.toString() || "0",
+            reach: convertedData.reach?.toString() || "0",
+            frequency: convertedData.frequency?.toString() || "0",
+            date_start: convertedData.date_start || "",
+            ad_sets: convertedData.ad_sets || [],
+            creative_data: convertedData.creative_data || {},
+            strategy_data: convertedData.strategy_data || {},
+            daily_insights: convertedData.daily_insights || [],
+            platform_data: convertedData.platform_data || [],
+            action_data: convertedData.action_data || [],
+            demographic_data: convertedData.demographic_data || [],
+            placement_data: convertedData.placement_data || [],
+            country_data: convertedData.country_data || [],
+            device_data: convertedData.device_data || [],
+            platform_engagement_data: convertedData.platform_engagement_data || [],
+            daily_budget_breakdown: convertedData.daily_budget_breakdown || [],
             // Additional fields from our API
-            conversions: data.conversions || [],
-            actions: data.actions || [],
-            action_values: data.action_values || [],
-            conversion_values: data.conversion_values || [],
-            cost_per_conversion: data.cost_per_conversion || [],
-            cost_per_purchase: data.cost_per_purchase?.toString() || "0",
-            website_purchase_roas: data.website_purchase_roas?.toString() || "0",
-            outbound_clicks: data.outbound_clicks || [],
-            outbound_clicks_ctr: data.outbound_clicks_ctr || [],
-            unique_clicks: data.unique_clicks?.toString() || "0",
-            unique_ctr: data.unique_ctr?.toString() || "0",
-            unique_outbound_clicks: data.unique_outbound_clicks || [],
-            unique_outbound_clicks_ctr: data.unique_outbound_clicks_ctr || [],
-            post_reactions: data.post_reactions?.toString() || "0",
-            post_comments: data.post_comments?.toString() || "0",
-            post_shares: data.post_shares?.toString() || "0",
-            ad_name: data.ad_name || "",
-            adset_name: data.adset_name || ""
+            conversions: convertedData.conversions || [],
+            actions: convertedData.actions || [],
+            action_values: convertedData.action_values || [],
+            conversion_values: convertedData.conversion_values || [],
+            cost_per_conversion: convertedData.cost_per_conversion || [],
+            cost_per_purchase: convertedData.cost_per_purchase?.toString() || "0",
+            cost_per_result: convertedData.cost_per_result?.toString() || "0",
+            website_purchase_roas: convertedData.website_purchase_roas?.toString() || "0",
+            outbound_clicks: convertedData.outbound_clicks || [],
+            outbound_clicks_ctr: convertedData.outbound_clicks_ctr || [],
+            unique_clicks: convertedData.unique_clicks?.toString() || "0",
+            unique_ctr: convertedData.unique_ctr?.toString() || "0",
+            unique_outbound_clicks: convertedData.unique_outbound_clicks || [],
+            unique_outbound_clicks_ctr: convertedData.unique_outbound_clicks_ctr || [],
+            post_reactions: convertedData.post_reactions?.toString() || "0",
+            post_comments: convertedData.post_comments?.toString() || "0",
+            post_shares: convertedData.post_shares?.toString() || "0",
+            ad_name: convertedData.ad_name || "",
+            adset_name: convertedData.adset_name || "",
+            // Budget fields from strategy_data - Use original values for Python API
+            daily_budget: data.strategy_data?.daily_budget || "0",
+            lifetime_budget: data.strategy_data?.lifetime_budget || "0",
+            budget_remaining: data.strategy_data?.budget_remaining || "0",
+            spend_cap: data.strategy_data?.spend_cap || "0",
+            // Additional comprehensive fields
+            ads_data: convertedData.ads_data || [],
+            // All the new insights fields will be automatically included in the data object
+            // since we're passing the entire data object to the backend
           };
 
           console.log('Sending data to Python API:', pythonApiPayload);
@@ -549,10 +583,10 @@ export default function HomePage() {
                   // Send campaign data to upload API
                   console.log(`📤 Uploading campaign ${campaign.id} data...`);
                   const uploadResponse = await fetch(`${API_BASE_URL}/api/data/upload?campaign_id=${campaign.id}`, {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify(pythonApiPayload)
-                  });
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(pythonApiPayload)
+          });
 
                   if (uploadResponse.ok) {
                     const uploadData = await uploadResponse.json();
@@ -594,7 +628,7 @@ export default function HomePage() {
                           setMessages(allMessages);
                           setHasLoadedConversations(true);
                           console.log('✅ Previous conversations loaded for campaign', campaign.id, ':', allMessages);
-                        } else {
+          } else {
                           console.log('ℹ️ No previous conversations found for campaign', campaign.id);
                         }
                       }
@@ -603,7 +637,7 @@ export default function HomePage() {
                     }
                   } else {
                     console.error('Failed to send data to Python API:', uploadResponse.statusText);
-                  }
+          }
         } catch (pythonError) {
           console.error('Error sending data to Python API:', pythonError);
         }
@@ -1203,7 +1237,7 @@ export default function HomePage() {
                 overflowY: 'auto',
                 padding: '30px',
                 background: 'rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)'
+               backdropFilter: 'blur(10px)'
               }}
             >
               {messages.map((message) => (
