@@ -192,7 +192,7 @@ export async function GET(req) {
     const dailyInsightsResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/insights?time_increment=1&fields=clicks,impressions,spend,cpc,cpm,ctr,reach,frequency,actions&time_range={'since':'${startDate}','until':'${endDate}'}&access_token=${accessToken}`
       );
-      dailyInsights = dailyInsightsResponse.data.data;
+      dailyInsights = dailyInsightsResponse.data.data.reverse(); // Reverse to show latest dates first
       console.log("Daily insights fetched successfully");
     } catch (error) {
       console.error("Error fetching daily insights:", error.response?.data || error.message);
@@ -361,7 +361,7 @@ export async function GET(req) {
         creative_data: creativeData,
         strategy_data: strategyData,
         daily_insights: dailyInsights,
-        daily_budget_breakdown: dailyInsightsResponse.data.data || [],
+        daily_budget_breakdown: dailyInsightsResponse.data.data ? dailyInsightsResponse.data.data.reverse() : [], // Reverse to show latest dates first
         platform_data: platformData,
         platform_engagement_data: platformEngagementData,
         action_data: actionData,
