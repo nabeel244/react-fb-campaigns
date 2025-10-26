@@ -511,7 +511,7 @@ export default function HomePage() {
             campaign_name: convertedData.campaign_name || "",
             conversion_rate_ranking: convertedData.conversion_rate_ranking?.toString() || "0",
             cost_per_action_type: convertedData.cost_per_action_type || [],
-            cost_per_unique_click: convertedData.cost_per_unique_click?.toString() || "0",
+            cost_per_unique_click: convertedData.cost_per_unique_click ? (parseFloat(convertedData.cost_per_unique_click) / 100).toString() : "0",
             cost_per_unique_outbound_click: convertedData.cost_per_unique_outbound_click || [],
             ctr: convertedData.ctr?.toString() || "0",
             cpp: convertedData.cpp?.toString() || "0",
@@ -521,9 +521,21 @@ export default function HomePage() {
             reach: convertedData.reach?.toString() || "0",
             frequency: convertedData.frequency?.toString() || "0",
             date_start: convertedData.date_start || "",
-            ad_sets: convertedData.ad_sets || [],
+            ad_sets: convertedData.ad_sets ? convertedData.ad_sets.map(adSet => ({
+              ...adSet,
+              daily_budget: adSet.daily_budget ? (parseFloat(adSet.daily_budget) / 100).toString() : "0",
+              lifetime_budget: adSet.lifetime_budget ? (parseFloat(adSet.lifetime_budget) / 100).toString() : "0",
+              budget_remaining: adSet.budget_remaining ? (parseFloat(adSet.budget_remaining) / 100).toString() : "0",
+              bid_amount: adSet.bid_amount ? (parseFloat(adSet.bid_amount) / 100).toString() : "0"
+            })) : [],
             creative_data: convertedData.creative_data || {},
-            strategy_data: convertedData.strategy_data || {},
+            strategy_data: convertedData.strategy_data ? {
+              ...convertedData.strategy_data,
+              daily_budget: convertedData.strategy_data.daily_budget ? (parseFloat(convertedData.strategy_data.daily_budget) / 100).toString() : "0",
+              lifetime_budget: convertedData.strategy_data.lifetime_budget ? (parseFloat(convertedData.strategy_data.lifetime_budget) / 100).toString() : "0",
+              budget_remaining: convertedData.strategy_data.budget_remaining ? (parseFloat(convertedData.strategy_data.budget_remaining) / 100).toString() : "0",
+              spend_cap: convertedData.strategy_data.spend_cap ? (parseFloat(convertedData.strategy_data.spend_cap) / 100).toString() : "0"
+            } : {},
             daily_insights: convertedData.daily_insights || [],
             platform_data: convertedData.platform_data || [],
             action_data: convertedData.action_data || [],
@@ -539,8 +551,8 @@ export default function HomePage() {
             action_values: convertedData.action_values || [],
             conversion_values: convertedData.conversion_values || [],
             cost_per_conversion: convertedData.cost_per_conversion || [],
-            cost_per_purchase: convertedData.cost_per_purchase?.toString() || "0",
-            cost_per_result: convertedData.cost_per_result?.toString() || "0",
+            cost_per_purchase: convertedData.cost_per_purchase ? (parseFloat(convertedData.cost_per_purchase) / 100).toString() : "0",
+            cost_per_result: convertedData.cost_per_result ? (parseFloat(convertedData.cost_per_result) / 100).toString() : "0",
             website_purchase_roas: convertedData.website_purchase_roas?.toString() || "0",
             outbound_clicks: convertedData.outbound_clicks || [],
             outbound_clicks_ctr: convertedData.outbound_clicks_ctr || [],
@@ -553,11 +565,11 @@ export default function HomePage() {
             post_shares: convertedData.post_shares?.toString() || "0",
             ad_name: convertedData.ad_name || "",
             adset_name: convertedData.adset_name || "",
-            // Budget fields from strategy_data - Use original values for Python API
-            daily_budget: data.strategy_data?.daily_budget || "0",
-            lifetime_budget: data.strategy_data?.lifetime_budget || "0",
-            budget_remaining: data.strategy_data?.budget_remaining || "0",
-            spend_cap: data.strategy_data?.spend_cap || "0",
+            // Budget fields from strategy_data - Convert from cents to dollars
+            daily_budget: data.strategy_data?.daily_budget ? (parseFloat(data.strategy_data.daily_budget) / 100).toString() : "0",
+            lifetime_budget: data.strategy_data?.lifetime_budget ? (parseFloat(data.strategy_data.lifetime_budget) / 100).toString() : "0",
+            budget_remaining: data.strategy_data?.budget_remaining ? (parseFloat(data.strategy_data.budget_remaining) / 100).toString() : "0",
+            spend_cap: data.strategy_data?.spend_cap ? (parseFloat(data.strategy_data.spend_cap) / 100).toString() : "0",
             // Additional comprehensive fields
             ads_data: convertedData.ads_data || [],
             // All the new insights fields will be automatically included in the data object
