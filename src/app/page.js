@@ -498,7 +498,7 @@ export default function HomePage() {
         };
         
         setSelectedCampaignMetrics(convertedData);
-        setIsModalOpen(true);
+        // setIsModalOpen(true); // Hidden modal for now
         
         // Send campaign data to Python API
         try {
