@@ -112,7 +112,7 @@ export async function GET(req) {
     let adSetData = [];
     try {
     const adSetResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/adsets?fields=id,name,status,created_time,updated_time,daily_budget,lifetime_budget,budget_remaining,optimization_goal,bid_amount,targeting,start_time,end_time&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/adsets?fields=id,name,status,created_time,updated_time,daily_budget,lifetime_budget,budget_remaining,optimization_goal,bid_amount,targeting,start_time,end_time,recommendations&access_token=${accessToken}`
       );
       adSetData = adSetResponse.data.data;
       console.log("Ad sets fetched successfully:", adSetData);
@@ -125,7 +125,7 @@ export async function GET(req) {
     let strategyData = {};
     try {
     const strategyResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}?fields=id,name,objective,status,created_time,updated_time,daily_budget,lifetime_budget,budget_remaining,spend_cap,start_time,stop_time,buying_type&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}?fields=id,name,objective,status,created_time,updated_time,daily_budget,lifetime_budget,budget_remaining,spend_cap,start_time,stop_time,buying_type,recommendations&access_token=${accessToken}`
       );
       strategyData = strategyResponse.data;
       console.log("Strategy data fetched successfully:", strategyData);
@@ -139,7 +139,7 @@ export async function GET(req) {
     let creativeData = null;
     try {
     const adResponse = await axios.get(
-        `https://graph.facebook.com/v23.0/${campaignId}/ads?fields=id,name,status,created_time,updated_time,adset_id,campaign_id,creative&access_token=${accessToken}`
+        `https://graph.facebook.com/v23.0/${campaignId}/ads?fields=id,name,status,created_time,updated_time,adset_id,campaign_id,creative,recommendations&access_token=${accessToken}`
       );
       adsData = adResponse.data.data;
       console.log("Ads data fetched successfully:", adsData);
@@ -151,7 +151,7 @@ export async function GET(req) {
         
         try {
   const creativeResponse = await axios.get(
-            `https://graph.facebook.com/v23.0/${creativeId}?fields=id,name,body,title,object_type,image_url,link,message&access_token=${accessToken}`
+            `https://graph.facebook.com/v23.0/${creativeId}?fields=id,name,body,title,object_type,image_url,link,message,recommendations&access_token=${accessToken}`
   );
    creativeData = creativeResponse.data;
           console.log("Creative data fetched successfully");

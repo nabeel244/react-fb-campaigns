@@ -572,6 +572,7 @@ export default function HomePage() {
             spend_cap: data.strategy_data?.spend_cap ? (parseFloat(data.strategy_data.spend_cap) / 100).toString() : "0",
             // Additional comprehensive fields
             ads_data: convertedData.ads_data || [],
+            recommendations: convertedData.strategy_data?.recommendations || [],
             // All the new insights fields will be automatically included in the data object
             // since we're passing the entire data object to the backend
           };
