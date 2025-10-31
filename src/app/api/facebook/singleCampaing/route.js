@@ -133,27 +133,27 @@ export async function GET(req) {
       console.error("Error fetching strategy data:", error.response?.data || error.message);
     }
 
-    // Fetch ads data
+    // Fetch ads data and creative
     console.log("Fetching ads data...");
     let adsData = [];
     let creativeData = null;
     try {
-    const adResponse = await axios.get(
+      const adResponse = await axios.get(
         `https://graph.facebook.com/v23.0/${campaignId}/ads?fields=id,name,status,created_time,updated_time,adset_id,campaign_id,creative,recommendations&access_token=${accessToken}`
       );
       adsData = adResponse.data.data;
-      console.log("Ads data fetched successfully:", adsData);
-
-      // Extract the creative ID and fetch creative data
+      console.log("Ads data fetched successfully:", adsData.length, "ads");
+      
+      // Get creative data from first ad if available
       if (adsData.length > 0 && adsData[0].creative && adsData[0].creative.id) {
         const creativeId = adsData[0].creative.id;
         console.log("Fetching creative data for ID:", creativeId);
         
         try {
-  const creativeResponse = await axios.get(
-            `https://graph.facebook.com/v23.0/${creativeId}?fields=id,name,body,title,object_type,image_url,link,message,recommendations&access_token=${accessToken}`
-  );
-   creativeData = creativeResponse.data;
+          const creativeResponse = await axios.get(
+            `https://graph.facebook.com/v23.0/${creativeId}?fields=id,name,body,title,object_type,image_url,link,message,object_story_spec&access_token=${accessToken}`
+          );
+          creativeData = creativeResponse.data;
           console.log("Creative data fetched successfully");
         } catch (error) {
           console.error("Error fetching creative data:", error.response?.data || error.message);
@@ -161,7 +161,7 @@ export async function GET(req) {
       }
     } catch (error) {
       console.error("Error fetching ads data:", error.response?.data || error.message);
-}
+    }
 
     const campaignData = insightsResponse.data.data[0];
 
@@ -297,6 +297,20 @@ export async function GET(req) {
     
     
 
+    // Final debug log for creative_data before sending response
+    console.log("=== FINAL CREATIVE_DATA CHECK (Before Response) ===");
+    console.log("creative_data value:", creativeData);
+    console.log("creative_data type:", typeof creativeData);
+    console.log("creative_data is null?", creativeData === null);
+    console.log("creative_data is undefined?", creativeData === undefined);
+    if (creativeData) {
+      console.log("creative_data keys:", Object.keys(creativeData));
+      console.log("creative_data full object:", JSON.stringify(creativeData, null, 2));
+    } else {
+      console.log("⚠️ creative_data is null/undefined - will be sent as null in response");
+    }
+    console.log("===================================================");
+    
     // Return all the campaign data
     return new Response(
       JSON.stringify({
