@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import FacebookProvider from "next-auth/providers/facebook";
+import GoogleProvider from "next-auth/providers/google";
 
 export const authOptions = {
   providers: [
@@ -13,25 +14,41 @@ export const authOptions = {
         },
       },
     }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      authorization: {
+        params: {
+          // Use basic scopes for initial testing, add AdWords scope after OAuth consent screen is configured
+          scope: process.env.GOOGLE_USE_ADWORDS_SCOPE === 'true' 
+            ? "openid email profile https://www.googleapis.com/auth/adwords"
+            : "openid email profile",
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
+    }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, user }) {
       if (account) {
         token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token; // Store the refresh token as well if needed
+        token.refreshToken = account.refresh_token;
+        token.provider = account.provider; // Store which provider was used
       }
       return token;
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken;
+      session.provider = token.provider; // Include provider in session
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Redirect user to home page after successful login
+      // Redirect user based on callbackUrl or default to home
       if (url.startsWith(baseUrl)) {
-        return baseUrl; // Always return the home page URL
+        return url; // Use the callbackUrl from signIn
       }
-      return url;
+      return baseUrl; // Default fallback
     },
   },
   pages: {

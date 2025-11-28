@@ -388,9 +388,14 @@ export default function HomePage() {
       router.push("/login");
       return;
     } else if (status === "authenticated") {
+      // Redirect Google users to Google Ads page
+      if (session?.provider === 'google') {
+        router.push("/google");
+        return;
+      }
       fetchAdAccounts();
     }
-  }, [status, router]);
+  }, [status, router, session]);
 
   // Focus input when chat opens
   useEffect(() => {
