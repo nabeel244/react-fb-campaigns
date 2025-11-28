@@ -36,8 +36,33 @@ export default function GoogleAdsPage() {
       setError("");
       
       console.log("📡 Fetching Google Ads accounts...");
+      console.log("🔗 API URL: /api/google/adaccounts");
+      
+      // First test if routing works
+      try {
+        const testResponse = await fetch("/api/google/test");
+        console.log("🧪 Test route status:", testResponse.status);
+        if (testResponse.ok) {
+          const testData = await testResponse.json();
+          console.log("✅ Test route works:", testData);
+        }
+      } catch (testErr) {
+        console.error("❌ Test route failed:", testErr);
+      }
+      
       const response = await fetch("/api/google/adaccounts");
+      console.log("📡 Response status:", response.status);
+      
+      if (!response.ok) {
+        console.error("❌ API response not OK:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.error("❌ Error response body:", errorText);
+        setError(`API Error: ${response.status} ${response.statusText}`);
+        return;
+      }
+      
       const data = await response.json();
+      console.log("📦 Response data:", data);
       
       if (data.error) {
         setError(data.error);
