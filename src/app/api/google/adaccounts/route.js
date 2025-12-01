@@ -179,26 +179,47 @@ export async function GET(req) {
               const accountName = customerData?.descriptiveName || `Account ${cleanCustomerId}`;
               const isTestAccount = customerData?.testAccount || false; // Assume test if we can't verify
               
-              const adAccounts = [{
+              const adAccounts = [];
+              
+              // Add the MCC/Manager account
+              adAccounts.push({
                 id: cleanCustomerId,
                 resourceName: customerResourceName,
                 name: `🧪 TEST: ${accountName}`,
                 currencyCode: customerData?.currencyCode || 'USD',
                 timeZone: customerData?.timeZone || 'UTC',
-                isManager: customerData?.manager || false,
-                isTestAccount: true, // Mark as test for development
-                accountStatus: 1, // Active
-              }];
+                isManager: true,
+                isTestAccount: true,
+                accountStatus: 1,
+              });
+              
+              // If there's a linked client account, add it as well
+              const linkedClientId = process.env.GOOGLE_ADS_TEST_CUSTOMER_LINKED_ID;
+              if (linkedClientId) {
+                const cleanLinkedId = linkedClientId.replace(/-/g, '');
+                adAccounts.push({
+                  id: cleanLinkedId,
+                  resourceName: `customers/${cleanLinkedId}`,
+                  name: `🧪 TEST: Client Account ${cleanLinkedId}`,
+                  currencyCode: customerData?.currencyCode || 'USD',
+                  timeZone: customerData?.timeZone || 'UTC',
+                  isManager: false,
+                  isTestAccount: true,
+                  accountStatus: 1,
+                });
+                console.log(`📋 Added linked client account: ${cleanLinkedId}`);
+              }
 
               return new Response(JSON.stringify({ 
                 data: adAccounts,
                 meta: {
-                  total: 1,
-                  testAccounts: 1,
+                  total: adAccounts.length,
+                  testAccounts: adAccounts.length,
                   productionAccounts: 0,
                   isTestMode: USE_SANDBOX_MODE,
                   note: "Using provided customer ID (searchStream endpoint may not be available via REST)",
-                  customerId: cleanCustomerId
+                  customerId: cleanCustomerId,
+                  linkedClientId: linkedClientId ? linkedClientId.replace(/-/g, '') : null
                 }
               }), { 
                 status: 200,
@@ -352,7 +373,7 @@ export async function GET(req) {
             id: customerId,
             resourceName: customerResourceName,
             name: isTestAccount 
-              ? `🧪 TEST: ${customerData.descriptiveName || `Account ${customerId}`}`
+              ? `🧪 ${customerData.descriptiveName || `Account ${customerId}`}`
               : (customerData.descriptiveName || `Account ${customerId}`),
             currencyCode: customerData.currencyCode,
             timeZone: customerData.timeZone,

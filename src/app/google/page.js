@@ -13,7 +13,9 @@ export default function GoogleAdsPage() {
   
   // State management
   const [adAccounts, setAdAccounts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [campaigns, setCampaigns] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [loading, setLoading] = useState({ adAccounts: true, campaigns: false });
   const [error, setError] = useState("");
 
   // Fetch ad accounts when authenticated
@@ -32,7 +34,7 @@ export default function GoogleAdsPage() {
 
   const fetchAdAccounts = async () => {
     try {
-      setLoading(true);
+      setLoading(prev => ({ ...prev, adAccounts: true }));
       setError("");
       
       console.log("📡 Fetching Google Ads accounts...");
@@ -75,7 +77,57 @@ export default function GoogleAdsPage() {
       setError("Error fetching ad accounts");
       console.error("Error fetching ad accounts:", err);
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, adAccounts: false }));
+    }
+  };
+
+  // Handle account click - fetch campaigns
+  const handleAccountClick = async (customerId) => {
+    try {
+      setSelectedAccount(customerId);
+      setLoading(prev => ({ ...prev, campaigns: true }));
+      setError("");
+      
+      console.log(`📊 Fetching campaigns for account: ${customerId}`);
+      
+      const response = await fetch(`/api/google/campaigns?customerId=${customerId}`);
+      const data = await response.json();
+      
+      if (data.error) {
+        setError(data.error);
+        setCampaigns([]);
+      } else {
+        const campaignsData = data?.data || [];
+        setCampaigns(campaignsData);
+        
+        // If we have campaigns (including mock data), don't show error
+        if (campaignsData.length > 0) {
+          setError(""); // Clear any errors if we have campaigns
+        } else if (data.meta?.error && (
+          data.meta.error.includes('REST API') || 
+          data.meta.error.includes('REST_API_LIMITATION') ||
+          data.meta.error.includes('REST API limitation')
+        )) {
+          // Only show error if we have no campaigns
+          setError(data.meta?.message || "Campaigns cannot be fetched via REST API");
+        } else {
+          // Clear error
+          setError("");
+        }
+        
+        console.log(`✅ Fetched ${campaignsData.length} campaigns`);
+        if (data.meta?.isMockData) {
+          console.log(`🧪 Showing mock campaign data for testing`);
+        }
+        if (data.meta?.message && campaignsData.length === 0) {
+          console.log(`ℹ️ Info: ${data.meta.message}`);
+        }
+      }
+    } catch (err) {
+      setError("Error fetching campaigns");
+      console.error("Error fetching campaigns:", err);
+    } finally {
+      setLoading(prev => ({ ...prev, campaigns: false }));
     }
   };
 
@@ -83,6 +135,8 @@ export default function GoogleAdsPage() {
   const handleLogout = () => {
     console.log("🚪 Logging out...");
     setAdAccounts([]);
+    setCampaigns([]);
+    setSelectedAccount(null);
     setError("");
     signOut();
   };
@@ -182,7 +236,7 @@ export default function GoogleAdsPage() {
               Ad Accounts
             </h2>
             
-            {loading ? (
+            {loading.adAccounts ? (
               <LoadingSpinner />
             ) : error ? (
               <div style={{
@@ -245,15 +299,35 @@ export default function GoogleAdsPage() {
                   adAccounts.map((account) => (
                     <div
                       key={account.id}
+                      onClick={() => handleAccountClick(account.id)}
                       className="card-padding"
                       style={{
                         padding: '25px',
                         background: '#ffffff',
                         borderRadius: '20px',
-                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-                        border: '1px solid #e5e7eb',
+                        boxShadow: selectedAccount === account.id 
+                          ? '0 8px 32px rgba(66, 133, 244, 0.3)' 
+                          : '0 8px 32px rgba(0, 0, 0, 0.1)',
+                        border: selectedAccount === account.id 
+                          ? '2px solid #4285f4' 
+                          : '1px solid #e5e7eb',
                         position: 'relative',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        transform: selectedAccount === account.id ? 'scale(1.02)' : 'scale(1)'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedAccount !== account.id) {
+                          e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.15)';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedAccount !== account.id) {
+                          e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.1)';
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }
                       }}
                     >
                       <div style={{ 
@@ -340,6 +414,171 @@ export default function GoogleAdsPage() {
               </div>
             )}
           </div>
+
+          {/* Campaigns Section */}
+          {selectedAccount && (
+            <div style={{ marginTop: '40px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                <h2 style={{ 
+                  fontSize: '24px', 
+                  fontWeight: '600', 
+                  color: '#333', 
+                  margin: 0
+                }}>
+                  Campaigns
+                </h2>
+                {campaigns.length > 0 && (
+                  <span style={{
+                    fontSize: '12px',
+                    padding: '4px 12px',
+                    background: '#fef3c7',
+                    color: '#92400e',
+                    borderRadius: '12px',
+                    fontWeight: '600'
+                  }}>
+                    🧪 Test Data
+                  </span>
+                )}
+              </div>
+              
+              {loading.campaigns ? (
+                <LoadingSpinner />
+              ) : (
+                <div className="campaigns-grid" style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                  gap: '20px'
+                }}>
+                  {campaigns.length === 0 ? (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '60px 40px',
+                      background: '#ffffff',
+                      borderRadius: '20px',
+                      color: '#6b7280',
+                      border: '2px dashed #d1d5db',
+                      gridColumn: '1 / -1'
+                    }}>
+                      <div style={{
+                        fontSize: '48px',
+                        marginBottom: '16px',
+                        opacity: '0.5'
+                      }}>
+                        📈
+                      </div>
+                      <p style={{
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        margin: '0 0 12px 0',
+                        color: '#1f2937'
+                      }}>
+                        {'No campaigns found for this account.'}
+                      </p>
+                      {error && (error.includes('REST API') || error.includes('REST_API_LIMITATION')) && (
+                        <div style={{
+                          fontSize: '14px',
+                          color: '#6b7280',
+                          margin: '8px 0 0 0',
+                          maxWidth: '600px',
+                          marginLeft: 'auto',
+                          marginRight: 'auto',
+                          lineHeight: '1.6',
+                          padding: '16px',
+                          background: '#fef3c7',
+                          borderRadius: '8px',
+                          border: '1px solid #fbbf24'
+                        }}>
+                          <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#92400e' }}>
+                            ℹ️ Testing with Mock Data
+                          </p>
+                          <p style={{ margin: 0, color: '#78350f' }}>
+                            The Google Ads API REST interface doesn't support querying campaigns. Showing mock/test campaigns for demonstration. To fetch real campaigns, use the Google Ads API client library (gRPC).
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    campaigns.map((campaign) => (
+                      <div
+                        key={campaign.id}
+                        style={{
+                          padding: '25px',
+                          background: '#ffffff',
+                          borderRadius: '20px',
+                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                          border: '1px solid #e5e7eb',
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <div style={{ 
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: '4px',
+                          background: campaign.status === 'ENABLED' 
+                            ? 'linear-gradient(90deg, #4ade80, #22c55e)' 
+                            : campaign.status === 'PAUSED'
+                            ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                            : 'linear-gradient(90deg, #f87171, #ef4444)',
+                          borderRadius: '20px 20px 0 0'
+                        }} />
+                        <div style={{ marginTop: '8px' }}>
+                          <h3 style={{ 
+                            fontSize: '18px', 
+                            fontWeight: '700', 
+                            color: '#1f2937',
+                            marginBottom: '12px'
+                          }}>
+                            {campaign.name}
+                          </h3>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '12px', color: '#6b7280' }}>Status:</span>
+                              <span
+                                style={{
+                                  fontSize: '12px',
+                                  color: campaign.status === 'ENABLED' ? '#059669' : campaign.status === 'PAUSED' ? '#d97706' : '#dc2626',
+                                  fontWeight: '700',
+                                  padding: '4px 12px',
+                                  borderRadius: '12px',
+                                  background: campaign.status === 'ENABLED' 
+                                    ? '#d1fae5' 
+                                    : campaign.status === 'PAUSED'
+                                    ? '#fef3c7'
+                                    : '#fee2e2',
+                                  textTransform: 'uppercase'
+                                }}
+                              >
+                                {campaign.status || 'UNKNOWN'}
+                              </span>
+                            </div>
+                            {campaign.advertisingChannelType && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '12px', color: '#6b7280' }}>Type:</span>
+                                <span style={{ fontSize: '12px', color: '#1f2937', fontWeight: '500' }}>
+                                  {campaign.advertisingChannelType}
+                                </span>
+                              </div>
+                            )}
+                            {campaign.startDate && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '12px', color: '#6b7280' }}>Start:</span>
+                                <span style={{ fontSize: '12px', color: '#1f2937', fontWeight: '500' }}>
+                                  {campaign.startDate}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
