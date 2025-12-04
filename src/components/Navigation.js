@@ -24,16 +24,22 @@ export default function Navigation() {
       }}>
         {/* Logo/Brand */}
         <Link href="/" style={{
-          fontSize: '24px',
-          fontWeight: '800',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
+          display: 'flex',
+          alignItems: 'center',
           textDecoration: 'none',
-          letterSpacing: '-0.5px'
+          height: '50px'
         }}>
-          AdRunner
+          <img
+            src="/logo.png"
+            alt="AdRunner Logo"
+            style={{
+              height: 'auto',
+              maxHeight: '50px',
+              width: 'auto',
+              maxWidth: '200px',
+              objectFit: 'contain'
+            }}
+          />
         </Link>
 
         {/* Navigation Links */}
