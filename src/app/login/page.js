@@ -2,6 +2,7 @@
 import { signIn } from "next-auth/react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Navigation from "@/components/Navigation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,12 +16,24 @@ export default function LoginPage() {
   }, [router]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f0f2f5' }}>
-      <h1 style={{ fontSize: '30px', fontWeight: '600', marginBottom: '30px', color: 'black' }}>Login to Ad Platform</h1>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+      <Navigation />
       
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '300px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 80px)', padding: '40px 20px' }}>
+        <div style={{ 
+          backgroundColor: 'white',
+          padding: '48px',
+          borderRadius: '16px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          maxWidth: '450px',
+          width: '100%'
+        }}>
+          <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px', color: '#1f2937', textAlign: 'center' }}>Login</h1>
+          <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '32px', textAlign: 'center' }}>Choose your preferred login method</p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <button
-          onClick={() => signIn("facebook", { callbackUrl: "/" })}
+          onClick={() => signIn("facebook", { callbackUrl: "/dashboard" })}
           style={{
             width: '100%',
             padding: '15px',
@@ -106,6 +119,8 @@ export default function LoginPage() {
           </svg>
           Login with Google
         </button>
+        </div>
+        </div>
       </div>
     </div>
   );

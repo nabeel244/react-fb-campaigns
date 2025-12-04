@@ -1,39 +1,8 @@
 "use client";
 import Navigation from "@/components/Navigation";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
-export default function RootPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  // Redirect authenticated users to their respective dashboards
-  useEffect(() => {
-    if (status === "authenticated" && session?.provider) {
-      if (session.provider === "facebook") {
-        router.push("/dashboard");
-      } else if (session.provider === "google") {
-        router.push("/google");
-      }
-    }
-  }, [status, session, router]);
-
-  // Show loading while checking session
-  if (status === "loading") {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <div>Loading...</div>
-      </div>
-    );
-  }
-
-  // If authenticated, don't show homepage (will redirect)
-  if (status === "authenticated") {
-    return null;
-  }
-
+export default function HomePage() {
   return (
     <div style={{
       minHeight: '100vh',
@@ -303,3 +272,4 @@ export default function RootPage() {
     </div>
   );
 }
+

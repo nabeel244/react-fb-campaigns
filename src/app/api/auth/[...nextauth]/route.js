@@ -30,7 +30,7 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account, user }) {
+    async jwt({ token, account, user, trigger, session }) {
       if (account) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
@@ -44,11 +44,73 @@ export const authOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Redirect user based on callbackUrl or default to home
-      if (url.startsWith(baseUrl)) {
-        return url; // Use the callbackUrl from signIn
+      // Parse the URL to check for callbackUrl parameter
+      try {
+        const urlObj = new URL(url, baseUrl);
+        const callbackUrl = urlObj.searchParams.get('callbackUrl');
+        
+        // If callbackUrl is provided as a query parameter, use it
+        if (callbackUrl) {
+          // Make it absolute if it's relative
+          if (callbackUrl.startsWith('/')) {
+            return `${baseUrl}${callbackUrl}`;
+          }
+          // Use as-is if it's already absolute
+          if (callbackUrl.startsWith(baseUrl) || callbackUrl.startsWith('http://') || callbackUrl.startsWith('https://')) {
+            return callbackUrl;
+          }
+        }
+      } catch (e) {
+        // URL parsing failed, continue with other checks
       }
-      return baseUrl; // Default fallback
+      
+      // If the URL itself is a callback URL path, extract provider and redirect accordingly
+      if (url.includes('/api/auth/callback/facebook')) {
+        // Check if there's a callbackUrl in the full URL
+        try {
+          const urlObj = new URL(url, baseUrl);
+          const callbackUrl = urlObj.searchParams.get('callbackUrl');
+          if (callbackUrl) {
+            if (callbackUrl.startsWith('/')) {
+              return `${baseUrl}${callbackUrl}`;
+            }
+            return callbackUrl;
+          }
+        } catch (e) {
+          // Fall through to default redirect
+        }
+        return `${baseUrl}/dashboard`;
+      }
+      
+      if (url.includes('/api/auth/callback/google')) {
+        // Check if there's a callbackUrl in the full URL
+        try {
+          const urlObj = new URL(url, baseUrl);
+          const callbackUrl = urlObj.searchParams.get('callbackUrl');
+          if (callbackUrl) {
+            if (callbackUrl.startsWith('/')) {
+              return `${baseUrl}${callbackUrl}`;
+            }
+            return callbackUrl;
+          }
+        } catch (e) {
+          // Fall through to default redirect
+        }
+        return `${baseUrl}/google`;
+      }
+      
+      // If callbackUrl is provided (as absolute URL), use it directly
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      
+      // If callbackUrl is a relative path, make it absolute
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`;
+      }
+      
+      // Default fallback to home
+      return baseUrl;
     },
   },
   pages: {

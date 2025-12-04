@@ -20,12 +20,24 @@ export default function GoogleAdsPage() {
 
   // Fetch ad accounts when authenticated
   useEffect(() => {
+    // Only redirect to login if user is completely unauthenticated or using wrong provider
+    // Don't redirect on API errors - show error on dashboard instead
+    if (status === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+    
+    // If authenticated but wrong provider, redirect to login
+    if (status === "authenticated" && session?.provider && session.provider !== 'google') {
+      router.push("/login");
+      return;
+    }
+    
+    // If authenticated with Google (or sandbox mode), fetch accounts
+    // Even if there's an error (403, etc.), stay on dashboard and show error
     if (USE_SANDBOX_MODE) {
       console.log("🔧 Sandbox mode - fetching ad accounts directly");
       fetchAdAccounts();
-    } else if (status === "unauthenticated" || (session?.provider !== 'google')) {
-      router.push("/login");
-      return;
     } else if (status === "authenticated" && session?.provider === 'google') {
       console.log("🔑 Google Access Token:", session.accessToken);
       fetchAdAccounts();
@@ -57,18 +69,41 @@ export default function GoogleAdsPage() {
       
       if (!response.ok) {
         console.error("❌ API response not OK:", response.status, response.statusText);
-        const errorText = await response.text();
-        console.error("❌ Error response body:", errorText);
-        setError(`API Error: ${response.status} ${response.statusText}`);
-        return;
+        let errorText = '';
+        try {
+          errorText = await response.text();
+          console.error("❌ Error response body:", errorText);
+        } catch (e) {
+          errorText = response.statusText;
+        }
+        
+        // Parse error if it's JSON
+        let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorData.message || errorData.details || errorMessage;
+          if (errorData.details && typeof errorData.details === 'string') {
+            errorMessage += ` - ${errorData.details}`;
+          }
+        } catch (e) {
+          // Not JSON, use text as-is
+          if (errorText && errorText.length < 200) {
+            errorMessage = errorText;
+          }
+        }
+        
+        setError(errorMessage);
+        setAdAccounts([]); // Clear accounts on error
+        return; // Stay on dashboard, don't redirect
       }
       
       const data = await response.json();
       console.log("📦 Response data:", data);
       
       if (data.error) {
-        setError(data.error);
+        setError(data.error + (data.details ? ` - ${data.details}` : ''));
         console.error("❌ Error from API:", data.error);
+        setAdAccounts([]); // Clear accounts on error
       } else {
         setAdAccounts(data?.data || []);
         console.log("✅ Google Ads accounts fetched:", data?.data?.length || 0);
@@ -240,28 +275,66 @@ export default function GoogleAdsPage() {
               <LoadingSpinner />
             ) : error ? (
               <div style={{
-                backgroundColor: '#f8d7da',
-                color: '#721c24',
-                padding: '15px',
-                borderRadius: '8px',
-                border: '1px solid #f5c6cb',
-                marginBottom: '20px'
+                backgroundColor: '#fff3cd',
+                color: '#856404',
+                padding: '20px',
+                borderRadius: '12px',
+                border: '2px solid #ffc107',
+                marginBottom: '20px',
+                boxShadow: '0 4px 12px rgba(255, 193, 7, 0.2)'
               }}>
-                <strong>Error:</strong> {error}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '24px' }}>⚠️</div>
+                  <div style={{ flex: 1 }}>
+                    <strong style={{ fontSize: '16px', display: 'block', marginBottom: '8px' }}>
+                      Error Loading Google Ads Accounts
+                    </strong>
+                    <div style={{ fontSize: '14px', lineHeight: '1.5', marginBottom: '12px' }}>
+                      {error}
+                    </div>
+                    {error.includes('403') && (
+                      <div style={{
+                        backgroundColor: '#fff',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        marginTop: '12px',
+                        fontSize: '13px',
+                        border: '1px solid #ffc107'
+                      }}>
+                        <strong>Possible Solutions:</strong>
+                        <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+                          <li>Check that your Google Ads Developer Token has the correct access level</li>
+                          <li>Ensure your OAuth token has the required Google Ads API scope</li>
+                          <li>Verify that your account has access to Google Ads accounts</li>
+                          <li>Try logging out and logging back in to refresh your access token</li>
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <button
                   onClick={fetchAdAccounts}
                   style={{
-                    marginLeft: '10px',
-                    padding: '5px 10px',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
+                    padding: '10px 20px',
+                    backgroundColor: '#ffc107',
+                    color: '#856404',
                     border: 'none',
-                    borderRadius: '4px',
+                    borderRadius: '6px',
                     cursor: 'pointer',
-                    fontSize: '12px'
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#ffb300';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#ffc107';
+                    e.target.style.transform = 'translateY(0)';
                   }}
                 >
-                  Retry
+                  🔄 Retry
                 </button>
               </div>
             ) : (
