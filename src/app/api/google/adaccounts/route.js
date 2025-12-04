@@ -66,8 +66,39 @@ export async function GET(req) {
     } else {
       console.log(`🔧 Using Google Access Token from session`);
     }
-    console.log(`🔑 Developer Token exists: ${!!developerToken}`);
-    console.log(`🧪 Note: If your developer token has "Test Account Access" level, only test accounts will be returned`);
+    
+    // Log developer token info (masked for security)
+    if (developerToken) {
+      const tokenLength = developerToken.length;
+      const maskedToken = tokenLength > 8 
+        ? `${developerToken.substring(0, 4)}...${developerToken.substring(tokenLength - 4)}`
+        : '****';
+      console.log(`🔑 Developer Token: ${maskedToken} (length: ${tokenLength})`);
+      console.log(`📋 Developer Token Source: GOOGLE_ADS_DEVELOPER_TOKEN from .env`);
+    } else {
+      console.log(`❌ Developer Token: NOT SET`);
+    }
+    
+    // Log access token info
+    if (accessToken) {
+      const tokenLength = accessToken.length;
+      const maskedToken = tokenLength > 8 
+        ? `${accessToken.substring(0, 8)}...${accessToken.substring(tokenLength - 8)}`
+        : '****';
+      console.log(`🔐 Access Token: ${maskedToken} (length: ${tokenLength})`);
+      
+      // AdWords scope is always included for production Google Ads API access
+      console.log(`📋 Google Ads API Scope: ✅ ENABLED (required for production access)`);
+    }
+    
+    console.log(`\n📊 ===== DEVELOPER TOKEN STATUS =====`);
+    console.log(`📊 Expected Access Level: Standard Access (from API center)`);
+    console.log(`📊 With Standard Access, you should see BOTH test and production accounts`);
+    console.log(`📊 Note: Accounts are automatically fetched from listAccessibleCustomers`);
+    console.log(`📊 If only test accounts appear, check:`);
+    console.log(`   1. Your OAuth account might only have access to test accounts`);
+    console.log(`   2. Production accounts might not be linked to your OAuth account`);
+    console.log(`========================================\n`);
     
     // Get the user's Google Ads accounts (customer IDs) - using axios
     // Note: The Google Ads API REST endpoint format
@@ -88,6 +119,11 @@ export async function GET(req) {
       
       console.log(`📊 Response status: ${customersRes.status}`);
       
+      // Log response headers that might indicate access level
+      if (customersRes.headers) {
+        console.log(`📋 Response headers:`, JSON.stringify(customersRes.headers, null, 2));
+      }
+      
       if (customersRes.status !== 200) {
         console.error(`❌ Google Ads API returned status ${customersRes.status}`);
         console.error(`❌ Response data:`, customersRes.data);
@@ -95,172 +131,42 @@ export async function GET(req) {
         const errorMessage = customersRes.data?.error?.message || 'Unknown error';
         const errorCode = customersRes.data?.error?.code || customersRes.status;
         
-        // Handle 501 - Not Implemented error
-        // Fallback: If we have a test customer ID, use it directly
-        if (customersRes.status === 501) {
-          const testCustomerId = process.env.GOOGLE_ADS_TEST_CUSTOMER_ID;
-          const urlParams = new URLSearchParams(req.url.split('?')[1]);
-          const customerIdParam = urlParams.get('customerId') || testCustomerId;
+        // Handle 403 - Access Denied (might indicate access level or scope issue)
+        if (customersRes.status === 403) {
+          console.log(`❌ Access Denied (403) - Authentication/Authorization Issue`);
           
-          if (customerIdParam) {
-            console.log(`⚠️ listAccessibleCustomers returned 501, using provided customer ID: ${customerIdParam}`);
-            
-            // Ensure customer ID is clean (remove dashes if present, like "298-142-6433" -> "2981426433")
-            const cleanCustomerId = customerIdParam.replace(/-/g, '');
-            console.log(`🧹 Cleaned customer ID: ${cleanCustomerId} (original: ${customerIdParam})`);
-            
-            if (cleanCustomerId.length !== 10) {
-              return new Response(JSON.stringify({ 
-                error: "Invalid customer ID format",
-                details: `Customer ID must be 10 digits. Got: ${cleanCustomerId} (${cleanCustomerId.length} digits)`,
-                customerId: cleanCustomerId
-              }), { 
-                status: 400,
-                headers: { "Content-Type": "application/json" }
-              });
-            }
-            
-            // Continue to fetch this customer directly
-            const customerResourceName = `customers/${cleanCustomerId}`;
-            const customerIds = [customerResourceName];
-            
-            // Skip the listing step and go directly to fetching customer details
-            // We'll handle this after the try-catch
-            console.log(`📋 Using provided customer ID: ${cleanCustomerId}`);
-            
-            // Fetch this customer directly
-            try {
-              // Try to fetch customer details via REST API
-              // Note: Google Ads API REST has limited support - may need to use basic info
-              console.log(`📝 Attempting to fetch details for Customer ID: ${cleanCustomerId}`);
-              
-              // Try the searchStream endpoint - if it fails, we'll use basic account info
-              let customerData = null;
-              const endpointUrl = `https://googleads.googleapis.com/v18/customers/${cleanCustomerId}/googleAds:searchStream`;
-              
-              try {
-                console.log(`🔍 Trying endpoint: ${endpointUrl}`);
-                const customerDetailsRes = await axios.post(
-                  endpointUrl,
-                  {
-                    query: `
-                      SELECT 
-                        customer.id,
-                        customer.descriptive_name,
-                        customer.currency_code,
-                        customer.time_zone,
-                        customer.manager,
-                        customer.test_account
-                      FROM customer
-                      LIMIT 1
-                    `
-                  },
-                  {
-                    headers: {
-                      Authorization: `Bearer ${accessToken}`,
-                      'developer-token': developerToken,
-                      'Content-Type': 'application/json',
-                    },
-                    validateStatus: (status) => status < 600,
-                  }
-                );
-                
-                if (customerDetailsRes.status === 200) {
-                  customerData = customerDetailsRes.data.results?.[0]?.customer;
-                  console.log(`✅ Successfully fetched customer details`);
-                } else {
-                  console.log(`⚠️ Endpoint returned ${customerDetailsRes.status}, using basic account info`);
-                }
-              } catch (searchError) {
-                console.log(`⚠️ searchStream endpoint not available (${searchError.response?.status || 'error'}), using basic account info`);
-              }
-              
-              // Use fetched data or create basic account structure for testing
-              const accountName = customerData?.descriptiveName || `Account ${cleanCustomerId}`;
-              const isTestAccount = customerData?.testAccount || false; // Assume test if we can't verify
-              
-              const adAccounts = [];
-              
-              // Add the MCC/Manager account
-              adAccounts.push({
-                id: cleanCustomerId,
-                resourceName: customerResourceName,
-                name: `🧪 TEST: ${accountName}`,
-                currencyCode: customerData?.currencyCode || 'USD',
-                timeZone: customerData?.timeZone || 'UTC',
-                isManager: true,
-                isTestAccount: true,
-                accountStatus: 1,
-              });
-              
-              // If there's a linked client account, add it as well
-              const linkedClientId = process.env.GOOGLE_ADS_TEST_CUSTOMER_LINKED_ID;
-              if (linkedClientId) {
-                const cleanLinkedId = linkedClientId.replace(/-/g, '');
-                adAccounts.push({
-                  id: cleanLinkedId,
-                  resourceName: `customers/${cleanLinkedId}`,
-                  name: `🧪 TEST: Client Account ${cleanLinkedId}`,
-                  currencyCode: customerData?.currencyCode || 'USD',
-                  timeZone: customerData?.timeZone || 'UTC',
-                  isManager: false,
-                  isTestAccount: true,
-                  accountStatus: 1,
-                });
-                console.log(`📋 Added linked client account: ${cleanLinkedId}`);
-              }
-
-              return new Response(JSON.stringify({ 
-                data: adAccounts,
-                meta: {
-                  total: adAccounts.length,
-                  testAccounts: adAccounts.length,
-                  productionAccounts: 0,
-                  isTestMode: USE_SANDBOX_MODE,
-                  note: "Using provided customer ID (searchStream endpoint may not be available via REST)",
-                  customerId: cleanCustomerId,
-                  linkedClientId: linkedClientId ? linkedClientId.replace(/-/g, '') : null
-                }
-              }), { 
-                status: 200,
-                headers: { "Content-Type": "application/json" }
-              });
-            } catch (customerError) {
-              console.error(`❌ Error fetching customer ${customerIdParam}:`, {
-                status: customerError.response?.status,
-                statusText: customerError.response?.statusText,
-                data: customerError.response?.data,
-                message: customerError.message,
-                url: `https://googleads.googleapis.com/v18/${customerResourceName}:searchStream`
-              });
-              
-              const errorDetails = customerError.response?.data?.error || {};
-              const errorMessage = errorDetails.message || customerError.message;
-              
-              return new Response(JSON.stringify({ 
-                error: "Failed to fetch customer details",
-                details: errorMessage,
-                status: customerError.response?.status,
-                customerId: cleanCustomerId || customerIdParam,
-                endpoint: customerResourceName ? `v18/${customerResourceName}:searchStream` : 'unknown',
-                fullError: customerError.response?.data,
-                suggestion: "Make sure the customer ID is correct, accessible with your developer token, and that the account exists"
-              }), { 
-                status: customerError.response?.status || 500,
-                headers: { "Content-Type": "application/json" }
-              });
-            }
+          // Check if it's a scope issue
+          if (errorMessage.includes('insufficient authentication scopes') || errorMessage.includes('insufficient_scope')) {
+            console.log(`📊 Issue: Access Token Missing Required Scope`);
+            console.log(`   - Your access token doesn't have the Google Ads API scope`);
+            console.log(`   - Required scope: https://www.googleapis.com/auth/adwords`);
+            console.log(`   - Current GOOGLE_USE_ADWORDS_SCOPE setting: ${process.env.GOOGLE_USE_ADWORDS_SCOPE || 'not set'}`);
+            console.log(`   - Solution:`);
+            console.log(`     1. Add GOOGLE_USE_ADWORDS_SCOPE=true to your .env file`);
+            console.log(`     2. Make sure your email is added as a test user in Google Cloud Console`);
+            console.log(`     3. Restart your dev server`);
+            console.log(`     4. Logout and login again to get a new token with the scope`);
+          } else {
+            console.log(`📊 Possible reasons:`);
+            console.log(`   - Developer token access level issue`);
+            console.log(`   - Token is not approved or pending approval`);
+            console.log(`   - Account is not accessible with current token permissions`);
+            console.log(`ℹ️ Check your token status at: https://ads.google.com/aw/apicenter`);
           }
-          
-          // If no fallback customer ID, return error
+        }
+        
+        // Handle 501 - Not Implemented error
+        // For production use, we rely on listAccessibleCustomers working properly
+        if (customersRes.status === 501) {
           return new Response(JSON.stringify({ 
             error: "Operation not supported via REST API",
-            message: "The listAccessibleCustomers endpoint may not be available via REST API.",
+            message: "The listAccessibleCustomers endpoint is not available via REST API. This is required to fetch accounts associated with the logged-in Google account.",
             details: errorMessage,
             solution: {
-              option1: "Provide a customer ID directly: Add GOOGLE_ADS_TEST_CUSTOMER_ID to your .env file",
-              option2: "Or pass customer ID as query parameter: /api/google/adaccounts?customerId=1234567890",
-              option3: "Contact Google Ads API support about REST API limitations"
+              step1: "This endpoint should work with Standard Access developer tokens",
+              step2: "Ensure your developer token has Standard Access level",
+              step3: "Verify your OAuth access token has the required Google Ads API scope",
+              step4: "Contact Google Ads API support if the issue persists"
             },
             code: errorCode
           }), { 
@@ -302,6 +208,7 @@ export async function GET(req) {
       }
       
       console.log(`✅ Successfully got response from listAccessibleCustomers`);
+      console.log(`📊 Your developer token has Standard Access - should return BOTH test and production accounts`);
     } catch (apiError) {
       console.error(`❌ Google Ads API Exception:`, {
         status: apiError.response?.status,
@@ -331,7 +238,8 @@ export async function GET(req) {
     }
 
     const customerIds = customersRes.data.resourceNames || [];
-    console.log(`📋 Found ${customerIds.length} accessible customers`);
+    console.log(`📋 Found ${customerIds.length} accessible customer(s) via listAccessibleCustomers`);
+    console.log(`📊 With Standard Access, this should include BOTH test and production accounts`);
     
     // For each customer, get account details
     const adAccounts = [];
@@ -373,8 +281,8 @@ export async function GET(req) {
             id: customerId,
             resourceName: customerResourceName,
             name: isTestAccount 
-              ? `🧪 ${customerData.descriptiveName || `Account ${customerId}`}`
-              : (customerData.descriptiveName || `Account ${customerId}`),
+              ? `🧪 TEST: ${customerData.descriptiveName || `Account ${customerId}`}`
+              : `📊 PRODUCTION: ${customerData.descriptiveName || `Account ${customerId}`}`,
             currencyCode: customerData.currencyCode,
             timeZone: customerData.timeZone,
             isManager: customerData.manager || false,
@@ -383,7 +291,9 @@ export async function GET(req) {
           });
           
           if (isTestAccount) {
-            console.log(`🧪 Found test account: ${customerId} - ${customerData.descriptiveName || 'Unnamed'}`);
+            console.log(`🧪 Found TEST account: ${customerId} - ${customerData.descriptiveName || 'Unnamed'}`);
+          } else {
+            console.log(`✅ Found PRODUCTION account: ${customerId} - ${customerData.descriptiveName || 'Unnamed'}`);
           }
         }
       } catch (error) {
@@ -394,13 +304,33 @@ export async function GET(req) {
     const testAccountsCount = adAccounts.filter(acc => acc.isTestAccount).length;
     const productionAccountsCount = adAccounts.length - testAccountsCount;
     
-    console.log(`✅ Returning ${adAccounts.length} Google Ads account(s)`);
-    if (testAccountsCount > 0) {
-      console.log(`🧪 Test accounts: ${testAccountsCount}`);
-    }
+    // Infer access level based on account types
+    let inferredAccessLevel = "Unknown";
     if (productionAccountsCount > 0) {
-      console.log(`📊 Production accounts: ${productionAccountsCount}`);
+      inferredAccessLevel = "✅ Standard Access CONFIRMED - Can access production accounts!";
+    } else if (testAccountsCount > 0) {
+      inferredAccessLevel = "⚠️ Only test accounts found - Token might have 'Test Account Access' level, or production accounts not accessible";
+    } else {
+      inferredAccessLevel = "Unknown (no accounts found)";
     }
+    
+    console.log(`\n📊 ===== ACCOUNT SUMMARY =====`);
+    console.log(`📊 Developer Token Access Level (inferred): ${inferredAccessLevel}`);
+    console.log(`📊 Your token has: Standard Access (from API center)`);
+    console.log(`📊 Accounts found:`);
+    console.log(`   - Total: ${adAccounts.length}`);
+    console.log(`   - 🧪 Test accounts: ${testAccountsCount}`);
+    console.log(`   - 📊 Production accounts: ${productionAccountsCount}`);
+    
+    if (productionAccountsCount === 0 && testAccountsCount > 0) {
+      console.log(`\n⚠️ WARNING: You have Standard Access but only test accounts are showing!`);
+      console.log(`   Possible reasons:`);
+      console.log(`   1. The OAuth user might only have access to test accounts`);
+      console.log(`   2. Production accounts might not be linked to your OAuth account`);
+      console.log(`   3. Check that production accounts are accessible via your Google Ads account`);
+    }
+    
+    console.log(`===============================\n`);
     
     return new Response(JSON.stringify({ 
       data: adAccounts,

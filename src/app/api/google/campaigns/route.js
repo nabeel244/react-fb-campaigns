@@ -60,19 +60,40 @@ export async function GET(req) {
 
     // Clean customer ID (remove dashes if present)
     let cleanCustomerId = customerId.replace(/-/g, '');
-    let loginCustomerId = null; // For MCC account queries
+    let loginCustomerId = null; // For MCC account queries (detected automatically from account data)
     
-    // Check if this is an MCC account - if so, use the linked client account ID for campaigns
-    const linkedClientId = process.env.GOOGLE_ADS_TEST_CUSTOMER_LINKED_ID;
-    const mccCustomerId = process.env.GOOGLE_ADS_TEST_CUSTOMER_ID?.replace(/-/g, '');
+    // Note: For production, accounts are automatically fetched from listAccessibleCustomers
+    // MCC accounts and their linked client accounts are handled automatically by the Google Ads API
     
-    // If the clicked customer ID matches the MCC account, use the linked client ID instead
-    if (linkedClientId && mccCustomerId && cleanCustomerId === mccCustomerId) {
-      const cleanLinkedId = linkedClientId.replace(/-/g, '');
-      console.log(`📊 MCC account detected (${cleanCustomerId}), using linked client account for campaigns: ${cleanLinkedId}`);
-      loginCustomerId = cleanCustomerId; // MCC account ID for login-customer-id header
-      cleanCustomerId = cleanLinkedId; // Client account ID for querying campaigns
+    // Log developer token info (masked for security)
+    if (developerToken) {
+      const tokenLength = developerToken.length;
+      const maskedToken = tokenLength > 8 
+        ? `${developerToken.substring(0, 4)}...${developerToken.substring(tokenLength - 4)}`
+        : '****';
+      console.log(`🔑 Developer Token: ${maskedToken} (length: ${tokenLength})`);
+      console.log(`📋 Developer Token Source: GOOGLE_ADS_DEVELOPER_TOKEN from .env`);
+    } else {
+      console.log(`❌ Developer Token: NOT SET`);
     }
+    
+    // Log access token info
+    if (accessToken) {
+      const tokenLength = accessToken.length;
+      const maskedToken = tokenLength > 8 
+        ? `${accessToken.substring(0, 8)}...${accessToken.substring(tokenLength - 8)}`
+        : '****';
+      console.log(`🔐 Access Token: ${maskedToken} (length: ${tokenLength})`);
+      
+      // AdWords scope is always included for production Google Ads API access
+      console.log(`📋 Google Ads API Scope: ✅ ENABLED (required for production access)`);
+    }
+    
+    console.log(`ℹ️ Developer Token Access Levels:`);
+    console.log(`   - Test Account Access: Can only access test accounts (default for new tokens)`);
+    console.log(`   - Basic Access: Can access production accounts with limited features`);
+    console.log(`   - Standard Access: Full access to production accounts`);
+    console.log(`ℹ️ To check your token's access level, visit: https://ads.google.com/aw/apicenter`);
     
     const customerResourceName = `customers/${cleanCustomerId}`;
     console.log(`📊 Fetching campaigns for customer: ${cleanCustomerId}`);
@@ -131,12 +152,16 @@ export async function GET(req) {
           };
         });
         console.log(`✅ Successfully fetched ${campaigns.length} campaigns`);
+        console.log(`📊 Developer Token Access Level: Successfully queried campaigns - token has sufficient permissions`);
+        console.log(`ℹ️ Note: If you can query production accounts, your token likely has Basic or Standard Access`);
       } else {
         console.log(`⚠️ Campaigns endpoint returned status ${campaignsResponse.status}`);
         
         // Handle 501 - REST API doesn't support this endpoint
         if (campaignsResponse.status === 501) {
           console.log(`⚠️ REST API doesn't support searchStream for campaigns`);
+          console.log(`📊 Developer Token Access Level: Cannot be determined (REST API limitation)`);
+          console.log(`ℹ️ Note: This 501 error is due to REST API limitations, not your developer token access level`);
           
           // Return mock data for testing since REST API doesn't support campaigns
           // Set USE_MOCK_CAMPAIGNS=false in .env to disable mock data

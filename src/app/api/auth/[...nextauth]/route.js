@@ -19,12 +19,10 @@ export const authOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       authorization: {
         params: {
-          // Default: Basic scopes only (works with any Google account - no verification needed)
-          // To enable Google Ads API access, set GOOGLE_USE_ADWORDS_SCOPE=true in .env
-          // Note: AdWords scope requires app verification/test users, so it's opt-in
-          scope: process.env.GOOGLE_USE_ADWORDS_SCOPE === 'true'
-            ? "openid email profile https://www.googleapis.com/auth/adwords"
-            : "openid email profile",
+          // Production: Always include AdWords scope for Google Ads API access
+          // This is REQUIRED to access Google Ads API (both test and production accounts)
+          // For production use, ensure your app is verified or add authorized users in Google Cloud Console
+          scope: "openid email profile https://www.googleapis.com/auth/adwords",
           access_type: "offline",
           prompt: "consent",
         },
