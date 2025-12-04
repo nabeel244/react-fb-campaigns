@@ -369,8 +369,8 @@ export default function PrivacyPolicyPage() {
             borderRadius: '8px',
             border: '1px solid #e5e7eb'
           }}>
-            <strong>Email:</strong> privacy@adrunner.com<br />
-            <strong>Website:</strong> <a href="/" style={{ color: '#667eea', textDecoration: 'underline' }}>https://adrunner.com</a>
+            {/* <strong>Email:</strong> privacy@adrunner.com<br /> */}
+            <strong>Website:</strong> <a href="/" style={{ color: '#667eea', textDecoration: 'underline' }}>https://fb-campaign.vercel.app</a>
           </p>
         </section>
       </div>

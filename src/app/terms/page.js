@@ -382,8 +382,8 @@ export default function TermsPage() {
             borderRadius: '8px',
             border: '1px solid #e5e7eb'
           }}>
-            <strong>Email:</strong> legal@adrunner.com<br />
-            <strong>Website:</strong> <a href="/" style={{ color: '#667eea', textDecoration: 'underline' }}>https://adrunner.com</a>
+            {/* <strong>Email:</strong> legal@adrunner.com<br /> */}
+            <strong>Website:</strong> <a href="/" style={{ color: '#667eea', textDecoration: 'underline' }}>https://fb-campaign.vercel.app/</a>
           </p>
         </section>
       </div>
