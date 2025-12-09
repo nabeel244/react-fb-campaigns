@@ -60,7 +60,7 @@ export default function RootPage() {
           letterSpacing: '-1px',
           lineHeight: '1.2'
         }}>
-          Manage Your Ad Campaigns
+          Manage Your Ad Campaignsss
           <br />
           <span style={{ fontSize: '48px' }}>All in One Place</span>
         </h1>
