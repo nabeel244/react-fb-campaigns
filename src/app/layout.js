@@ -1,7 +1,5 @@
-"use client"; // ✅ Required for SessionProvider
-
 import { Geist, Geist_Mono } from "next/font/google";
-import { SessionProvider } from "next-auth/react"; // ✅ Import SessionProvider
+import Providers from "@/components/Providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,15 +12,21 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Metadata for SEO and Google verification
+export const metadata = {
+  verification: {
+    google: "dN5SiXAsSjbroI-xJ_1w9qaIAbIgUOfbtiflZbMFkiM"
+  }
+};
 
 export default function RootLayout({ children }) {
   return (
-    <SessionProvider> {/* ✅ Wrap entire app with SessionProvider */}
-      <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en">
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <Providers>
           {children}
-        </body>
-      </html>
-    </SessionProvider>
+        </Providers>
+      </body>
+    </html>
   );
 }
