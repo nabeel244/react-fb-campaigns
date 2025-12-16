@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [adAccounts, setAdAccounts] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
-  const [loading, setLoading] = useState({ adAccounts: true, campaigns: false });
+  const [loading, setLoading] = useState({ adAccounts: true, campaigns: false, campaignDetails: false });
   const [error, setError] = useState("");
   
   // Chat state management
@@ -29,11 +29,109 @@ export default function DashboardPage() {
   const [chatHistory, setChatHistory] = useState([]);
   const [hasLoadedConversations, setHasLoadedConversations] = useState(false);
 
-  // Fetch ad accounts when authenticated
+  // Helper function to get stored auth data
+  const getStoredAuthData = () => {
+    try {
+      const authData = localStorage.getItem('userAuth');
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        console.log("📋 Retrieved stored auth data:", {
+          user: parsed.user,
+          token: parsed.access_token?.substring(0, 20) + "...",
+          expires_in: parsed.expires_in
+        });
+        return parsed;
+      }
+    } catch (error) {
+      console.error("❌ Error retrieving stored auth data:", error);
+    }
+    return null;
+  };
+
+  // Helper function to check if token is still valid
+  const isTokenValid = (authData) => {
+    if (!authData || !authData.loginTime || !authData.expires_in) {
+      return false;
+    }
+    
+    const loginTime = new Date(authData.loginTime);
+    const expirationTime = new Date(loginTime.getTime() + (authData.expires_in * 1000));
+    const now = new Date();
+    
+    return now < expirationTime;
+  };
+
+  // Function to call Python API for Facebook login
+  const callFacebookLoginAPI = async (accessToken) => {
+    try {
+      console.log("🚀 Calling Python API for Facebook login...");
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/facebook/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessToken: accessToken
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Python API Facebook login success:", data);
+        
+        // Save the response to localStorage for future API authorization
+        localStorage.setItem('userAuth', JSON.stringify({
+          user: data.user,
+          access_token: data.access_token,
+          token_type: data.token_type,
+          expires_in: data.expires_in,
+          loginTime: new Date().toISOString()
+        }));
+        
+        console.log("💾 Auth data saved to localStorage:", {
+          user: data.user,
+          token: data.access_token.substring(0, 20) + "...",
+          expires_in: data.expires_in
+        });
+        
+        // Fetch ad accounts after successful login
+        fetchAdAccounts();
+      } else {
+        const errorData = await response.json();
+        console.error("❌ Python API Facebook login error:", errorData);
+      }
+    } catch (error) {
+      console.error("❌ Error calling Python API:", error);
+    }
+  };
+
+  // Check for existing auth data on component load
+  useEffect(() => {
+    const storedAuth = getStoredAuthData();
+    if (storedAuth) {
+      if (isTokenValid(storedAuth)) {
+        console.log("✅ Valid stored auth token found");
+      } else {
+        console.log("⏰ Stored auth token has expired, clearing localStorage");
+        localStorage.removeItem('userAuth');
+      }
+    }
+  }, []);
+
+  // Console log Facebook auth token and call login API
   useEffect(() => {
     if (USE_SANDBOX_MODE) {
-      console.log("🔧 Sandbox mode - fetching ad accounts directly");
+      console.log("🔧 Sandbox mode enabled - bypassing session authentication");
+      // In sandbox mode, we don't need session authentication
+      // The Facebook APIs will use the hardcoded sandbox token
       fetchAdAccounts();
+    } else if (session?.accessToken && session?.provider === 'facebook') {
+      console.log("🔑 Facebook Access Token:", session.accessToken);
+      console.log("📊 Full Session Data:", session);
+      
+      // Call the Facebook login API
+      callFacebookLoginAPI(session.accessToken);
     } else if (status === "unauthenticated") {
       router.push("/login");
       return;
@@ -46,7 +144,7 @@ export default function DashboardPage() {
       // For Facebook users, fetch accounts
       fetchAdAccounts();
     }
-  }, [status, router, session]);
+  }, [session, status]);
 
   const fetchAdAccounts = async () => {
     try {
@@ -92,84 +190,160 @@ export default function DashboardPage() {
     }
   };
 
-  // Helper function to get stored auth data
-  const getStoredAuthData = () => {
-    try {
-      const authData = localStorage.getItem('userAuth');
-      if (authData) {
-        return JSON.parse(authData);
-      }
-    } catch (error) {
-      console.error("Error retrieving stored auth data:", error);
-    }
-    return null;
-  };
-
   // Handle campaign click - fetch details and open chatbot
   const handleCampaignClick = async (campaign, adAccountId) => {
     try {
-      console.log("🎯 Campaign clicked:", campaign.name, campaign.id);
-      
-      setLoading(prev => ({ ...prev, campaigns: true }));
+      setLoading(prev => ({ ...prev, campaignDetails: true }));
       setError("");
-      
-      // Fetch campaign details from singleCampaing API
-      console.log(`📊 Fetching campaign details for: ${campaign.id}`);
-      const campaignDetailsResponse = await fetch(
-        `/api/facebook/singleCampaing?adAccountId=${adAccountId}&campaignId=${campaign.id}`
-      );
-      
-      if (!campaignDetailsResponse.ok) {
-        throw new Error(`Failed to fetch campaign details: ${campaignDetailsResponse.status}`);
-      }
-      
-      const campaignDetailsData = await campaignDetailsResponse.json();
-      console.log("✅ Campaign details fetched:", campaignDetailsData);
-      
-      // Prepare campaign data for chatbot
-      const formattedCampaignData = {
-        campaign_id: campaign.id,
-        campaign_name: campaignDetailsData.campaign_name || campaign.name,
-        objective: campaignDetailsData.objective || campaign.objective,
-        ...campaignDetailsData
-      };
-      
-      // Get stored auth data for Python API
-      const authData = getStoredAuthData();
-      
-      // Send campaign data to Python API
-      console.log("📤 Sending campaign data to Python API...");
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (authData && authData.access_token) {
-        headers['Authorization'] = `Bearer ${authData.access_token}`;
-      }
-      
-      const uploadResponse = await fetch(`${API_BASE_URL}/api/data/load`, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(formattedCampaignData)
-      });
-      
-      if (uploadResponse.ok) {
-        console.log("✅ Campaign data uploaded to Python API");
-      } else {
-        console.warn("⚠️ Failed to upload campaign data to Python API:", uploadResponse.status);
-      }
-      
-      // Set campaign data and open chatbot
-      setCampaignData(formattedCampaignData);
-      setMessages([]);
+      // Reset all chat-related state for new campaign
       setHasLoadedConversations(false);
-      setIsChatOpen(true);
-      
+      setMessages([]); // Clear previous messages
+      console.log('🎯 Campaign clicked - ID:', campaign.id, 'Name:', campaign.name);
+      console.log('🔄 Reset conversation state for new campaign');
+
+      const response = await fetch(`/api/facebook/singleCampaing?adAccountId=${adAccountId}&campaignId=${campaign.id}`);
+      const data = await response.json();
+
+      if (data.error) {
+        setError(data.error);
+      } else {
+        // Convert campaign data to the format expected by Python API
+        const convertedData = {
+          campaign_id: campaign.id,
+          campaign_name: data.campaign_name || campaign.name,
+          objective: data.objective || campaign.objective,
+          date_start: data.date_start,
+          date_stop: data.date_stop,
+          clicks: data.clicks?.toString() || "0",
+          impressions: data.impressions?.toString() || "0",
+          spend: data.spend ? (parseFloat(data.spend) / 100).toString() : "0",
+          cpc: data.cpc ? (parseFloat(data.cpc) / 100).toString() : "0",
+          cpm: data.cpm ? (parseFloat(data.cpm) / 100).toString() : "0",
+          ctr: data.ctr?.toString() || "0",
+          cpp: data.cpp ? (parseFloat(data.cpp) / 100).toString() : "0",
+          reach: data.reach?.toString() || "0",
+          frequency: data.frequency?.toString() || "0",
+          conversions: data.conversions?.toString() || "0",
+          conversion_values: data.conversion_values?.toString() || "0",
+          cost_per_conversion: data.cost_per_conversion ? (parseFloat(data.cost_per_conversion) / 100).toString() : "0",
+          website_purchase_roas: data.website_purchase_roas?.toString() || "0",
+        };
+
+        setCampaignData(convertedData);
+
+        // Send campaign data to Python API
+        try {
+          const pythonApiPayload = {
+            clicks: convertedData.clicks?.toString() || "0",
+            impressions: convertedData.impressions?.toString() || "0",
+            spend: convertedData.spend || "0",
+            cpc: convertedData.cpc || "0",
+            cpm: convertedData.cpm || "0",
+            ctr: convertedData.ctr?.toString() || "0",
+            cpp: convertedData.cpp || "0",
+            reach: convertedData.reach?.toString() || "0",
+            frequency: convertedData.frequency?.toString() || "0",
+            conversions: convertedData.conversions?.toString() || "0",
+            conversion_values: convertedData.conversion_values?.toString() || "0",
+            cost_per_conversion: convertedData.cost_per_conversion || "0",
+            website_purchase_roas: convertedData.website_purchase_roas?.toString() || "0",
+            campaign_id: campaign.id,
+            campaign_name: convertedData.campaign_name,
+            objective: convertedData.objective,
+            date_start: convertedData.date_start,
+            date_stop: convertedData.date_stop,
+          };
+
+          console.log('Sending data to Python API:', pythonApiPayload);
+
+          // Get stored auth token for authorization
+          const authData = getStoredAuthData();
+          const headers = {
+            'Content-Type': 'application/json',
+          };
+
+          // Add authorization header if token is available and valid
+          if (authData && isTokenValid(authData)) {
+            headers['Authorization'] = `Bearer ${authData.access_token}`;
+            console.log('🔐 Using stored auth token for data upload');
+          } else {
+            console.warn('⚠️ No valid auth token found for data upload');
+          }
+
+          // Send campaign data to upload API
+          console.log(`📤 Uploading campaign ${campaign.id} data...`);
+          const uploadResponse = await fetch(`${API_BASE_URL}/api/data/upload?campaign_id=${campaign.id}`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(pythonApiPayload)
+          });
+
+          if (uploadResponse.ok) {
+            const uploadData = await uploadResponse.json();
+            console.log('Campaign data successfully sent to Python API:', uploadData);
+            
+            // Fetch conversations directly (no load API needed)
+            console.log(`✅ Campaign uploaded, fetching conversations...`);
+            const conversationsResponse = await fetch(`${API_BASE_URL}/api/chat/conversations?campaign_id=${campaign.id}`, {
+              method: 'GET',
+              headers: headers
+            });
+
+            if (conversationsResponse.ok) {
+              const conversationsData = await conversationsResponse.json();
+              console.log('Conversations fetched successfully:', conversationsData);
+              
+              // Process and display messages in chat
+              if (conversationsData && conversationsData.length > 0) {
+                // Get all messages from all conversations and sort by timestamp
+                const allMessages = [];
+                conversationsData.forEach(conversation => {
+                  if (conversation.messages && conversation.messages.length > 0) {
+                    conversation.messages.forEach(msg => {
+                      allMessages.push({
+                        id: msg.id,
+                        type: msg.role === 'user' ? 'user' : 'bot',
+                        message: msg.content,
+                        timestamp: new Date(msg.created_at)
+                      });
+                    });
+                  }
+                });
+                
+                // Sort messages by timestamp to show them in chronological order
+                allMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                
+                if (allMessages.length > 0) {
+                  // Store messages to be loaded when chat opens
+                  setMessages(allMessages);
+                  setHasLoadedConversations(true);
+                  console.log('✅ Previous conversations loaded for campaign', campaign.id, ':', allMessages);
+                } else {
+                  console.log('ℹ️ No previous conversations found for campaign', campaign.id);
+                }
+              }
+            } else {
+              console.error('Failed to fetch conversations:', conversationsResponse.statusText);
+            }
+          } else {
+            console.error('Failed to send data to Python API:', uploadResponse.statusText);
+          }
+        } catch (pythonError) {
+          console.error('Error sending data to Python API:', pythonError);
+        }
+        
+        // Open chatbot and create new chat session
+        const newChatId = Date.now().toString();
+        setCurrentChatId(newChatId);
+        
+        // Open chat - let NewChatComponent handle message initialization
+        setIsChatOpen(true);
+      }
     } catch (err) {
-      console.error("Error handling campaign click:", err);
-      setError("Error loading campaign details. Please try again.");
+      setError("Error fetching campaign insights");
+      console.error("Error fetching campaign insights:", err);
     } finally {
-      setLoading(prev => ({ ...prev, campaigns: false }));
+      setLoading(prev => ({ ...prev, campaignDetails: false }));
     }
   };
 
